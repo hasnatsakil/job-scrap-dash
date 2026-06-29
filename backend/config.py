@@ -10,7 +10,6 @@ class Settings(BaseSettings):
     google_sheets_credentials_b64: str = Field(..., alias="GOOGLE_SHEETS_CREDENTIALS_B64")
     google_sheet_id: str = Field(..., alias="GOOGLE_SHEET_ID")
     openrouter_api_key: str = Field(..., alias="OPENROUTER_API_KEY")
-    linkedin_li_at_cookie: Optional[str] = Field(None, alias="LINKEDIN_LI_AT_COOKIE")
 
     # New variable for encrypting browser sessions
     session_encryption_key: str = Field("default_insecure_key_please_change_in_production", alias="SESSION_ENCRYPTION_KEY")
@@ -30,7 +29,6 @@ except Exception:
         google_sheets_credentials_b64 = ""
         google_sheet_id = ""
         openrouter_api_key = ""
-        linkedin_li_at_cookie = None
         session_encryption_key = "test_key"
     env_settings = MockSettings()
 
