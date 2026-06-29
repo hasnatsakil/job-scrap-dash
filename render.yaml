@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: ai-job-scraper
+    env: docker
+    region: oregon
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENVIRONMENT
+        value: production
+      - key: GOOGLE_SHEETS_CREDENTIALS_B64
+        sync: false
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: LINKEDIN_LI_AT_COOKIE
+        sync: false
