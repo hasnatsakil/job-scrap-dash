@@ -1,18 +1,20 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, Settings as SettingsIcon, Activity, FileText } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Settings as SettingsIcon, Activity, FileText, Link as LinkIcon } from 'lucide-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Jobs = lazy(() => import('./pages/Jobs'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const Health = lazy(() => import('./pages/Health'));
 const Logs = lazy(() => import('./pages/Logs'));
+const Connections = lazy(() => import('./pages/Connections'));
 const queryClient = new QueryClient();
 const Sidebar = () => {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Briefcase, label: 'Jobs', path: '/jobs' },
     { icon: FileText, label: 'Logs', path: '/logs' },
+    { icon: LinkIcon, label: 'Connections', path: '/connections' },
     { icon: SettingsIcon, label: 'Settings', path: '/settings' },
     { icon: Activity, label: 'Health', path: '/health' },
   ];
@@ -45,6 +47,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/logs" element={<Logs />} />
+            <Route path="/connections" element={<Connections />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/health" element={<Health />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

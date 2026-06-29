@@ -37,3 +37,8 @@ else: logger.warning("Frontend dist not found. API only mode.")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.app:app", host="0.0.0.0", port=env_settings.port, reload=True)
+
+# Register connectors
+from backend.services.connection_manager import connection_manager
+from backend.connectors.linkedin_connector import LinkedInConnector
+connection_manager.register_connector(LinkedInConnector())

@@ -34,7 +34,8 @@ class GoogleSheetsService:
             'Settings': ['Key', 'Value'],
             'Logs': ['Time', 'Source', 'Keyword', 'Jobs Found', 'Jobs Saved', 'Errors', 'Duration', 'Status'],
             'Keywords': ['Keyword', 'Location', 'Enabled'],
-            'Sources': ['Source', 'Enabled']
+            'Sources': ['Source', 'Enabled'],
+            'Sessions': ['Provider', 'EncryptedState']
         }
         try:
             sheet_metadata = self.service.spreadsheets().get(spreadsheetId=self.spreadsheet_id).execute()

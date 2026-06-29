@@ -1,48 +1,38 @@
 # AI-Powered Job Scraping Dashboard
 
-A lightweight, modular, production-ready Job Scraping Dashboard designed to run on Render. This application automates job searching from multiple sources, filters jobs using an AI model via OpenRouter, and stores accepted jobs in Google Sheets. It includes a modern React dashboard to monitor, manage, and review scraped jobs.
+A lightweight, modular, production-ready Job Scraping Dashboard designed to run on **Vercel** serverless architecture. This application automates job searching from multiple sources, filters jobs using an AI model via OpenRouter, and stores accepted jobs and browser sessions securely in Google Sheets.
 
 ## Features
 
 - **Automated Web Scraping:** Uses Playwright to mimic X-Ray searches across job boards (LinkedIn, Greenhouse, Lever, Ashby, etc.).
+- **Authenticated Sessions (V2):** Pluggable Connection Manager allows logging into platforms (like LinkedIn) directly from the dashboard. The browser session is encrypted and persisted seamlessly in Google Sheets, bypassing Vercel's ephemeral filesystem limitations.
 - **AI Filtering:** Swappable AI provider (default OpenRouter) evaluates job descriptions based on a customizable prompt and issues Keep/Reject decisions.
 - **Google Sheets Database:** Uses Google Sheets as a completely stateless persistence layer. No external SQL database needed.
 - **Deduplication:** Normalizes data and prevents duplicates by Job URL and Company+Title signatures.
-- **Budget Management:** Tracks AI usage to stay within free-tier OpenRouter limits.
 - **Dashboard UI:** React (Vite) + Tailwind CSS + shadcn/ui dashboard to review statistics, jobs, system health, and configure the application.
 
 ## Prerequisites
 
 1. **Google Service Account Credentials:** Base64-encoded JSON credentials with access to a target Google Sheet.
 2. **OpenRouter API Key:** Used to run the `gpt-oss-20b:free` model for filtering jobs.
-3. **Docker:** Required for deployment on Render to bundle Playwright dependencies.
+3. **Session Encryption Key:** A secure random string to encrypt browser cookies and local storage before saving to Google Sheets.
 
-## Local Development (Docker Compose)
+## Deployment (Vercel)
 
-The easiest way to run the application locally is via Docker Compose:
+This project is optimized for deployment on Vercel.
 
-1. Clone the repository and copy `.env.example` to `.env`.
-2. Fill in the required environment variables in the `.env` file.
-3. Build and start the container:
-
-```bash
-docker-compose up --build
-```
-
-The FastAPI backend and React frontend will be served at `http://localhost:8000`.
-
-## Deployment (Render)
-
-This project is optimized for a single Render Web Service container.
-
-1. Connect your GitHub repository to a new Render Web Service.
-2. Choose "Docker" as the runtime environment.
-3. Use the included `render.yaml` (Blueprint) or manually add the required environment variables:
+1. Connect your GitHub repository to Vercel.
+2. The `vercel.json` file will automatically configure:
+   - Python Serverless Functions (`api/index.py`).
+   - Vite React Frontend build routing.
+   - Vercel Cron Jobs (to trigger scraping daily).
+3. Set the following Environment Variables in Vercel:
    - `GOOGLE_SHEETS_CREDENTIALS_B64`
    - `GOOGLE_SHEET_ID`
    - `OPENROUTER_API_KEY`
+   - `SESSION_ENCRYPTION_KEY`
 
-Render will build the multi-stage Dockerfile, installing both Node dependencies (for the React build) and Playwright dependencies (for the FastAPI backend), running them seamlessly as one application.
+**Important Playwright Note for Vercel:** Playwright chromium binaries are large and often exceed Vercel's 250MB serverless deployment limit. To ensure reliable authenticated scraping on Vercel, it is highly recommended to configure Playwright to connect to a cloud browser provider (like Browserless.io) via WebSocket in `linkedin.py` rather than launching local Chromium binaries within the serverless function.
 
 ## Configuration
 
