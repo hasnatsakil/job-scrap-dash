@@ -16,10 +16,17 @@ class AIProvider:
 class OpenRouterProvider(AIProvider):
     async def evaluate_job_async(self, job: Dict[str, Any]) -> AIProviderResult:
         config = config_manager.get_config()
+        model = config.ai_model
+
+        # Enforce that only free models are allowed if OpenRouter is used
+        if ":free" not in model.lower():
+            logger.warning(f"Enforcing free model usage. Swapping {model} to openai/gpt-oss-20b:free")
+            model = "openai/gpt-oss-20b:free"
+
         system_content = f"{config.ai_system_prompt}\nReturn ONLY JSON: {{\"keep\": true/false, \"score\": 0-100, \"reason\": \"str\"}}"
         user_content = f"Title: {job.get('title')}\nCompany: {job.get('company')}\nLocation: {job.get('location')}\nType: {job.get('work_type')}\nDescription: {job.get('description')[:3000]}"
         headers = {"Authorization": f"Bearer {env_settings.openrouter_api_key}", "HTTP-Referer": "https://github.com/ai-job-scraper", "X-Title": "AI Job Scraper", "Content-Type": "application/json"}
-        payload = {"model": config.ai_model, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]}
+        payload = {"model": model, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]}
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
