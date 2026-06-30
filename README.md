@@ -1,39 +1,140 @@
 # AI-Powered Job Scraping Dashboard
 
-A lightweight, modular, production-ready Job Scraping Dashboard designed to run on **Vercel** serverless architecture. This application automates job searching from multiple sources, filters jobs using an AI model via OpenRouter, and stores accepted jobs and browser sessions securely in Supabase.
+Automated job scraping dashboard that collects jobs from LinkedIn, Greenhouse,
+Lever, and Ashby, filters them using AI, and displays results in a modern
+dashboard. Built with React + Supabase + GitHub Actions.
+
+## Architecture
+
+```
+┌──────────────┐     reads/writes      ┌──────────────┐
+│   Vercel     │◄──────────────────────►│   Supabase   │
+│  (Frontend)  │  Supabase JS SDK       │  (Database)  │
+└──────────────┘                        └──────┬───────┘
+                                                ▲ writes
+                                          ┌─────┴───────┐
+                                          │GitHub Actions│
+                                          │  (Scraper)   │
+                                          └──────────────┘
+```
+
+- **Frontend** — React + Vite + Tailwind CSS + shadcn/ui, deployed on Vercel
+- **Database** — Supabase (PostgreSQL), frontend talks directly via the JS SDK
+- **Scraper** — Python + Playwright, runs daily in GitHub Actions, writes to Supabase
+- **AI Filtering** — OpenRouter (free model) evaluates job descriptions
 
 ## Features
 
-- **Automated Web Scraping:** Uses Playwright to mimic X-Ray searches across job boards (LinkedIn, Greenhouse, Lever, Ashby, etc.).
-- **Authenticated Sessions (V2):** Pluggable Connection Manager allows logging into platforms (like LinkedIn) directly from the dashboard. The browser session is encrypted and persisted seamlessly in Supabase, bypassing Vercel's ephemeral filesystem limitations.
-- **AI Filtering:** Swappable AI provider (default OpenRouter) evaluates job descriptions based on a customizable prompt and issues Keep/Reject decisions.
-- **Supabase Database:** Uses Supabase (PostgreSQL) as the persistence layer.
-- **Deduplication:** Normalizes data and prevents duplicates by Job URL and Company+Title signatures.
-- **Dashboard UI:** React (Vite) + Tailwind CSS + shadcn/ui dashboard to review statistics, jobs, system health, and configure the application.
+- Automated scraping from LinkedIn, Greenhouse, Lever, Ashby
+- AI-powered job filtering with customizable prompt
+- Keyword management (CRUD)
+- Job review dashboard with search, sort, filter, CSV export
+- Daily scheduled scraping via GitHub Actions (configurable in YAML)
+- Manual scraper trigger from GitHub Actions dashboard
+- System health monitoring
 
 ## Prerequisites
 
-1. **Supabase Project:** A Supabase project URL and service key for database storage.
-2. **OpenRouter API Key:** Used to run the `gpt-oss-20b:free` model for filtering jobs.
-3. **Session Encryption Key:** A secure random string to encrypt browser cookies and local storage before saving to the database.
+1. **Supabase Project** — URL and anon key for the frontend, service role key for the scraper
+2. **OpenRouter API Key** — Free tier works (`gpt-oss-20b:free`)
+3. **GitHub Account** — For the scraper runner
+4. **Vercel Account** — For frontend hosting
 
-## Deployment (Vercel)
+## Setup
 
-This project is optimized for deployment on Vercel.
+### 1. Supabase Tables
 
-1. Connect your GitHub repository to Vercel.
-2. The `vercel.json` file will automatically configure:
-   - Python Serverless Functions (`api/index.py`).
-   - Vite React Frontend build routing.
-   - Vercel Cron Jobs (to trigger scraping daily).
-3. Set the following Environment Variables in Vercel:
-   - `SUPABASE_URL`
-   - `SUPABASE_KEY`
-   - `OPENROUTER_API_KEY`
-   - `SESSION_ENCRYPTION_KEY`
+The following tables need to exist in your Supabase project:
 
-**Important Playwright Note for Vercel:** Playwright chromium binaries are large and often exceed Vercel's 250MB serverless deployment limit. To ensure reliable authenticated scraping on Vercel, it is highly recommended to configure Playwright to connect to a cloud browser provider (like Browserless.io) via WebSocket in `linkedin.py` rather than launching local Chromium binaries within the serverless function.
+- **`jobs`** — scraped job listings (already exists if you migrated from the old setup)
+- **`logs`** — scraping run logs (already exists)
+- **`keywords`** — search keywords with enabled/disabled state (already exists)
+- **`settings`** — app configuration (single row)
+- **`scraper_runs`** — tracks scraper health and status
 
-## Configuration
+Run the SQL migration in Supabase SQL Editor to create missing tables:
+```
+backend/scripts/migration_create_tables.sql
+```
 
-All non-sensitive application configurations (e.g., Schedules, Search Keywords, Enabled Sources, Prompt overrides) are managed directly via the **Settings** page in the UI.
+### 2. GitHub Secrets
+
+These are required by the GitHub Actions scraper workflow. Add them in:
+**GitHub repo → Settings → Secrets and variables → Actions**
+
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_KEY` | Supabase service role key (not anon key) |
+| `OPENROUTER_API_KEY` | Your OpenRouter API key |
+
+### 3. Frontend Deployment (Vercel)
+
+1. Push the repo to GitHub
+2. In Vercel: Add New Project → Import your GitHub repo
+3. Vercel auto-detects the Vite config from `vercel.json`
+4. Add these **Environment Variables** in Vercel project Settings:
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/publishable key |
+| `VITE_GITHUB_REPO` | `https://github.com/your-username/your-repo` |
+
+5. Deploy — the frontend talks directly to Supabase, no backend server needed
+
+### 4. Local Development
+
+```bash
+# Frontend
+cd frontend
+cp .env.example .env
+# Fill in your Supabase URL and anon key
+npm install
+npm run dev
+
+# Scraper (runs locally)
+cd backend
+pip install -r requirements.txt
+playwright install chromium
+python -c "import asyncio; from backend.services.orchestrator import orchestrator; asyncio.run(orchestrator.run_all())"
+```
+
+## Running the Scraper
+
+### Daily (automatic)
+The scraper runs daily at 8 AM via the GitHub Actions workflow:
+`.github/workflows/scrape.yml`
+
+### Manual
+Go to GitHub → Actions → **Daily Job Scraper** → **Run workflow**
+
+## Project Structure
+
+```
+├── frontend/               # React + Vite dashboard
+│   ├── src/
+│   │   ├── pages/          # Dashboard, Jobs, Keywords, Logs, Health, Settings
+│   │   ├── components/     # Reusable UI components
+│   │   ├── lib/            # Supabase client, utilities
+│   │   └── contexts/       # Theme, Toast providers
+│   └── .env.example        # Environment variable template
+├── backend/
+│   ├── scrapers/           # LinkedIn, Lever, Greenhouse, Ashby scrapers
+│   ├── services/           # Orchestrator, AI, DB, extractors, normalizers
+│   ├── routers/            # API endpoints (legacy)
+│   ├── scripts/            # Migration SQL, setup utilities
+│   └── requirements.txt
+├── .github/workflows/      # GitHub Actions scraper workflow
+├── vercel.json             # Vercel deployment config (frontend only)
+└── README.md
+```
+
+## Tech Stack
+
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts
+- **Database:** Supabase (PostgreSQL)
+- **State:** TanStack React Query
+- **Scraping:** Playwright, BeautifulSoup
+- **AI:** OpenRouter API (gpt-oss-20b:free)
+- **CI/CD:** GitHub Actions (scraper), Vercel (frontend)
