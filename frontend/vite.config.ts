@@ -1,8 +1,11 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+import { vercelPlugin } from "vite-plugin-vercel"
 export default defineConfig({ 
-  plugins: [react()], 
+  plugins: [react(), vercelPlugin({ 
+    rewrites: [{ source: "/(.*)", destination: "/index.html" }] 
+  })], 
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
   server: {
     proxy: {
