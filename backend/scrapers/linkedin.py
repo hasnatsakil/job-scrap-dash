@@ -5,8 +5,7 @@ import asyncio
 import logging
 from backend.scrapers.base import BaseScraper, JobResult
 from backend.config import config_manager
-from backend.services.connection_manager import connection_manager
-from backend.services.session_storage import session_storage
+from backend.services.captcha_detector import captcha_detector, CaptchaDetectedException
 
 logger = logging.getLogger(__name__)
 
@@ -19,45 +18,20 @@ class LinkedInScraper(BaseScraper):
 
         config = config_manager.get_config()
 
-        # Check Connection Manager to see if we have an authenticated session
-        connector = connection_manager.get_connector("linkedin")
-        use_auth = False
-
-        if connector and connector.is_connected and not connector.is_expired:
-            logger.info("Using ConnectionManager Authenticated LinkedIn session.")
-            use_auth = True
-
         try:
-            if use_auth:
-                # We need to launch a new context with the stored state, so we ignore the incoming `context`
-                state = session_storage.load("linkedin")
-                if state:
-                    state.pop("_meta", None) # remove our custom meta before passing to playwright
+            logger.info("Using public unauthenticated LinkedIn scraping.")
+            page = await context.new_page()
+            url = f"https://www.linkedin.com/jobs/search?keywords={keyword}"
+            await page.goto(url, wait_until="domcontentloaded")
+            await asyncio.sleep(config.delay_between_requests)
 
-                async with async_playwright() as p:
-                    browser = await p.chromium.launch(headless=True)
-                    auth_context = await browser.new_context(storage_state=state)
-                    page = await auth_context.new_page()
-
-                    url = f"https://www.linkedin.com/jobs/search/?keywords={keyword}"
-                    await page.goto(url, wait_until="domcontentloaded")
-                    await asyncio.sleep(config.delay_between_requests)
-
-                    content = await page.content()
-                    jobs = self._parse_jobs(content, config.max_jobs_per_keyword)
-
-                    await browser.close()
-            else:
-                # Fallback to public X-Ray style search using the incoming unauthenticated context
-                logger.info("Using public unauthenticated LinkedIn scraping.")
-                page = await context.new_page()
-                url = f"https://www.linkedin.com/jobs/search?keywords={keyword}"
-                await page.goto(url, wait_until="domcontentloaded")
-                await asyncio.sleep(config.delay_between_requests)
-
-                content = await page.content()
-                jobs = self._parse_jobs(content, config.max_jobs_per_keyword)
-                await page.close()
+            content = await page.content()
+            
+            if captcha_detector.detect_html(content):
+                raise CaptchaDetectedException(self.source_name)
+                
+            jobs = self._parse_jobs(content, config.max_jobs_per_keyword)
+            await page.close()
 
         except Exception as e:
             if "Timeout" in str(e):

@@ -1,36 +1,384 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Save, Settings as SettingsIcon, Clock, Brain, Search, Sliders, ChevronDown } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
+import { supabase } from '@/lib/supabaseClient';
+
+const DEFAULTS: SettingsData = {
+  schedule_time: '08:00 AM',
+  ai_model: 'openai/gpt-oss-20b:free',
+  ai_system_prompt: 'You are an expert technical recruiting assistant.\n\nYour task is to evaluate whether a job posting matches the user search keyword and should be kept.\n\nEvaluation rules:\n1. The job title should closely match the search keyword or be a reasonable variation.\n2. The required skills technologies or responsibilities should be relevant to the keyword.\n3. Ignore the location work arrangement (remote hybrid onsite) salary and years of experience unless they clearly make the job unrelated.\n4. Accept jobs even if they are not a perfect match. Favor keeping potentially relevant jobs rather than rejecting them.\n5. Reject only jobs that are clearly unrelated to the search keyword.\n6. If there is insufficient information prefer accepted rather than rejecting.',
+  ai_request_budget_daily: 100,
+  max_pages_per_source: 5,
+  max_jobs_per_keyword: 50,
+  delay_between_requests: 2,
+  retry_count: 3,
+  timeout: 30,
+  concurrency: 2,
+  search_provider: 'duckduckgo',
+  enabled_sources: ['linkedin', 'greenhouse', 'lever', 'ashby'],
+  search_keywords: ['Python Developer', 'Backend Engineer'],
+};
+
+interface SettingsData {
+  schedule_time?: string;
+  ai_model?: string;
+  ai_system_prompt?: string;
+  ai_request_budget_daily?: number;
+  max_pages_per_source?: number;
+  max_jobs_per_keyword?: number;
+  delay_between_requests?: number;
+  retry_count?: number;
+  timeout?: number;
+  concurrency?: number;
+  search_provider?: string;
+  enabled_sources?: string[];
+  search_keywords?: string[];
+  [key: string]: any;
+}
+
+const SETTINGS_KEY = 'app_settings';
+
+interface SettingFieldProps {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+const SettingField: React.FC<SettingFieldProps> = ({ label, description, children }) => (
+  <div className="flex items-start justify-between gap-6 py-4 border-b border-[#27272A] last:border-0">
+    <div className="flex-1">
+      <label className="text-sm font-medium text-[#FAFAFA]">{label}</label>
+      {description && <p className="text-xs text-[#71717A] mt-0.5 leading-relaxed">{description}</p>}
+    </div>
+    <div className="shrink-0 w-64">{children}</div>
+  </div>
+);
+
+const inputClass = "w-full h-9 px-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50 transition-colors";
+const selectClass = "w-full h-9 px-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none focus:border-blue-500/50 cursor-pointer transition-colors";
+const textareaClass = "w-full p-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#FAFAFA] font-mono placeholder:text-[#71717A] outline-none focus:border-blue-500/50 transition-colors resize-y min-h-[120px]";
+
+interface SectionProps {
+  id: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ id, icon, title, description, children }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <div id={id} className="bg-[#18181B] border border-[#27272A] rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#111113] transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="text-[#71717A]">{icon}</div>
+          <div>
+            <h3 className="text-sm font-semibold text-[#FAFAFA]">{title}</h3>
+            <p className="text-xs text-[#71717A] mt-0.5">{description}</p>
+          </div>
+        </div>
+        <ChevronDown size={15} className={`text-[#71717A] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 border-t border-[#27272A]">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 export default function Settings() {
   const queryClient = useQueryClient();
-  const { data: settings, isLoading } = useQuery({ queryKey: ['settings'], queryFn: async () => (await axios.get('/api/settings')).data });
-  const mutation = useMutation({ mutationFn: (newSettings: any) => axios.put('/api/settings', newSettings), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['settings'] }); alert('Settings saved!'); } });
-  if (isLoading) return <div>Loading settings...</div>;
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    mutation.mutate({ ...settings, schedule_time: formData.get('schedule_time'), ai_model: formData.get('ai_model'), ai_request_budget_daily: parseInt(formData.get('ai_budget') as string) });
+  const { toast } = useToast();
+
+  const { data: settings, isLoading } = useQuery<SettingsData>({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from('settings').select('*').limit(1).single();
+        if (data) {
+          const s = { ...data, enabled_sources: typeof data.enabled_sources === 'string' ? JSON.parse(data.enabled_sources) : (data.enabled_sources || DEFAULTS.enabled_sources) };
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+          return s;
+        }
+      } catch {}
+      const stored = localStorage.getItem(SETTINGS_KEY);
+      return stored ? JSON.parse(stored) : DEFAULTS;
+    },
+  });
+
+  const [form, setForm] = useState<SettingsData>({});
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setForm(settings);
+    }
+  }, [settings]);
+
+  const set = (key: string, value: any) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
   };
+
+  const saveToBackend = async (data: SettingsData) => {
+    try {
+      const payload = { ...data, enabled_sources: JSON.stringify(data.enabled_sources) };
+      await supabase.from('settings').upsert({ id: 1, ...payload }).eq('id', 1);
+    } catch {}
+  };
+
+  const mutation = useMutation({
+    mutationFn: async (data: SettingsData) => {
+      const toSave = { ...DEFAULTS, ...data };
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(toSave));
+      await saveToBackend(toSave);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setIsDirty(false);
+      toast('success', 'Settings Saved', 'Your configuration has been updated.');
+    },
+    onError: () => toast('error', 'Failed to Save Settings'),
+  });
+
+  const handleSaveFull = () => {
+    if (isDirty) mutation.mutate(form);
+  };
+
+  const handleSavePartial = () => {
+    if (isDirty) mutation.mutate(form);
+  };
+
+  const hasChanges = isDirty;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-48 bg-[#18181B] rounded-lg border border-[#27272A]" />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Settings</h1>
-      <Card>
-        <CardHeader><CardTitle>Configuration Cache</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="schedule_time">Daily Schedule Time</Label><Input id="schedule_time" name="schedule_time" defaultValue={settings?.schedule_time} /></div>
-              <div className="space-y-2"><Label htmlFor="ai_model">AI Model</Label><Input id="ai_model" name="ai_model" defaultValue={settings?.ai_model} /></div>
-              <div className="space-y-2"><Label htmlFor="ai_budget">Daily AI Budget</Label><Input id="ai_budget" name="ai_budget" type="number" defaultValue={settings?.ai_request_budget_daily} /></div>
+    <div className="space-y-4 pb-24">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-[#71717A]">Manage your scraper configuration, AI settings, and integrations.</p>
+        <button
+          onClick={handleSaveFull}
+          disabled={!hasChanges && !mutation.isPending}
+          className="flex items-center gap-2 h-9 px-4 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-md transition-colors"
+        >
+          <Save size={14} />
+          {mutation.isPending ? 'Saving…' : 'Save All'}
+        </button>
+      </div>
+
+      {/* General */}
+      <Section id="general" icon={<SettingsIcon size={15} />} title="General" description="Application-wide settings">
+        <SettingField label="Daily Schedule Time" description="Time the scraper automatically runs each day (24h format, e.g. 08:00 AM). Use top 'Save All' button to apply.">
+          <input
+            value={form.schedule_time ?? ''}
+            onChange={e => set('schedule_time', e.target.value)}
+            placeholder="08:00 AM"
+            className={inputClass}
+          />
+        </SettingField>
+      </Section>
+
+      {/* Scraper */}
+      <Section id="scraper" icon={<Sliders size={15} />} title="Scraper" description="Sources, timing and rate limit settings">
+        <SettingField label="Enabled Sources" description="Select the job boards and platforms to scrape.">
+          <div className="flex flex-col gap-2">
+            {[
+              { id: 'linkedin', label: 'LinkedIn' },
+              { id: 'greenhouse', label: 'Greenhouse' },
+              { id: 'lever', label: 'Lever' },
+              { id: 'ashby', label: 'Ashby' },
+              { id: 'wellfound', label: 'Wellfound' },
+              { id: 'indeed', label: 'Indeed' },
+              { id: 'glassdoor', label: 'Glassdoor' },
+            ].map(src => {
+              const enabled = form.enabled_sources?.includes(src.id) || false;
+              return (
+                <label key={src.id} className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${enabled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-[#111113] border-[#27272A] text-transparent group-hover:border-[#3F3F46]'}`}>
+                    <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="2.5 7 5.5 10 11.5 4" />
+                    </svg>
+                  </div>
+                  <span className={`text-sm ${enabled ? 'text-[#FAFAFA]' : 'text-[#71717A] group-hover:text-[#A1A1AA]'}`}>{src.label}</span>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={enabled}
+                    onChange={(e) => {
+                      const newSources = e.target.checked
+                        ? [...(form.enabled_sources || []), src.id]
+                        : (form.enabled_sources || []).filter(s => s !== src.id);
+                      set('enabled_sources', newSources);
+                    }}
+                  />
+                </label>
+              );
+            })}
+          </div>
+        </SettingField>
+        <SettingField label="Request Delay (sec)" description="Seconds to wait between requests to avoid rate limiting.">
+          <input
+            type="number"
+            value={form.delay_between_requests ?? ''}
+            onChange={e => set('delay_between_requests', parseFloat(e.target.value))}
+            placeholder="2"
+            min={0}
+            step={0.5}
+            className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="Request Timeout (sec)" description="Max seconds to wait for a page to load.">
+          <input
+            type="number"
+            value={form.timeout ?? ''}
+            onChange={e => set('timeout', parseInt(e.target.value))}
+            placeholder="30"
+            min={5}
+            className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="Max Jobs per Keyword" description="Maximum number of jobs to collect per keyword per run.">
+          <input
+            type="number"
+            value={form.max_jobs_per_keyword ?? ''}
+            onChange={e => set('max_jobs_per_keyword', parseInt(e.target.value))}
+            placeholder="50"
+            min={1}
+            className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="Max Pages per Source" description="Maximum number of pages to paginate through.">
+          <input
+            type="number"
+            value={form.max_pages_per_source ?? ''}
+            onChange={e => set('max_pages_per_source', parseInt(e.target.value))}
+            placeholder="5"
+            min={1}
+            className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="Retry Count" description="Number of times to retry failed requests.">
+          <input
+            type="number"
+            value={form.retry_count ?? ''}
+            onChange={e => set('retry_count', parseInt(e.target.value))}
+            placeholder="3"
+            min={0}
+            className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="Concurrency" description="Number of parallel scraping tasks.">
+          <input
+            type="number"
+            value={form.concurrency ?? ''}
+            onChange={e => set('concurrency', parseInt(e.target.value))}
+            placeholder="2"
+            min={1}
+            className={inputClass}
+          />
+        </SettingField>
+      </Section>
+
+      {/* AI */}
+      <Section id="ai" icon={<Brain size={15} />} title="AI" description="AI model and budget configuration">
+        <SettingField label="AI Model" description="The model used for job evaluation.">
+          <input
+            value={form.ai_model ?? ''}
+            onChange={e => set('ai_model', e.target.value)}
+            placeholder="openai/gpt-4o-mini"
+            className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="AI System Prompt" description="The instruction provided to the AI for filtering.">
+          <textarea
+            value={form.ai_system_prompt ?? ''}
+            onChange={e => set('ai_system_prompt', e.target.value)}
+            placeholder="Evaluate if this job is a good fit."
+            className={textareaClass}
+          />
+        </SettingField>
+        <SettingField label="Daily AI Budget" description="Maximum number of AI evaluation requests per day.">
+          <input
+            type="number"
+            value={form.ai_request_budget_daily ?? ''}
+            onChange={e => set('ai_request_budget_daily', parseInt(e.target.value))}
+            placeholder="100"
+            min={1}
+            className={inputClass}
+          />
+        </SettingField>
+      </Section>
+
+      {/* Search */}
+      <Section id="search" icon={<Search size={15} />} title="Search" description="Job search preferences and filters">
+        <SettingField label="Search Provider" description="Default search provider used as fallback.">
+          <select value={form.search_provider ?? ''} onChange={e => set('search_provider', e.target.value)} className={selectClass}>
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+          </select>
+        </SettingField>
+      </Section>
+
+      {/* Sticky Save Bar */}
+      <AnimatePresence>
+        {hasChanges && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#27272A] bg-[#09090B]/95 backdrop-blur px-6 py-4 flex items-center justify-between shadow-2xl"
+          >
+            <p className="text-sm text-[#A1A1AA]">You have unsaved changes.</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setForm(settings ?? {});
+                  setIsDirty(false);
+                }}
+                className="h-9 px-4 text-sm text-[#71717A] hover:text-[#FAFAFA] border border-[#27272A] rounded-md transition-colors"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleSavePartial}
+                disabled={mutation.isPending}
+                className="flex items-center gap-2 h-9 px-4 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-md transition-colors"
+              >
+                <Save size={14} />
+                {mutation.isPending ? 'Saving…' : 'Save (excl. schedule)'}
+              </button>
             </div>
-            <div className="pt-4"><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save Settings'}</Button></div>
-          </form>
-        </CardContent>
-      </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

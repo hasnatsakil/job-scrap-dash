@@ -1,21 +1,21 @@
 # AI-Powered Job Scraping Dashboard
 
-A lightweight, modular, production-ready Job Scraping Dashboard designed to run on **Vercel** serverless architecture. This application automates job searching from multiple sources, filters jobs using an AI model via OpenRouter, and stores accepted jobs and browser sessions securely in Google Sheets.
+A lightweight, modular, production-ready Job Scraping Dashboard designed to run on **Vercel** serverless architecture. This application automates job searching from multiple sources, filters jobs using an AI model via OpenRouter, and stores accepted jobs and browser sessions securely in Supabase.
 
 ## Features
 
 - **Automated Web Scraping:** Uses Playwright to mimic X-Ray searches across job boards (LinkedIn, Greenhouse, Lever, Ashby, etc.).
-- **Authenticated Sessions (V2):** Pluggable Connection Manager allows logging into platforms (like LinkedIn) directly from the dashboard. The browser session is encrypted and persisted seamlessly in Google Sheets, bypassing Vercel's ephemeral filesystem limitations.
+- **Authenticated Sessions (V2):** Pluggable Connection Manager allows logging into platforms (like LinkedIn) directly from the dashboard. The browser session is encrypted and persisted seamlessly in Supabase, bypassing Vercel's ephemeral filesystem limitations.
 - **AI Filtering:** Swappable AI provider (default OpenRouter) evaluates job descriptions based on a customizable prompt and issues Keep/Reject decisions.
-- **Google Sheets Database:** Uses Google Sheets as a completely stateless persistence layer. No external SQL database needed.
+- **Supabase Database:** Uses Supabase (PostgreSQL) as the persistence layer.
 - **Deduplication:** Normalizes data and prevents duplicates by Job URL and Company+Title signatures.
 - **Dashboard UI:** React (Vite) + Tailwind CSS + shadcn/ui dashboard to review statistics, jobs, system health, and configure the application.
 
 ## Prerequisites
 
-1. **Google Service Account Credentials:** Base64-encoded JSON credentials with access to a target Google Sheet.
+1. **Supabase Project:** A Supabase project URL and service key for database storage.
 2. **OpenRouter API Key:** Used to run the `gpt-oss-20b:free` model for filtering jobs.
-3. **Session Encryption Key:** A secure random string to encrypt browser cookies and local storage before saving to Google Sheets.
+3. **Session Encryption Key:** A secure random string to encrypt browser cookies and local storage before saving to the database.
 
 ## Deployment (Vercel)
 
@@ -27,8 +27,8 @@ This project is optimized for deployment on Vercel.
    - Vite React Frontend build routing.
    - Vercel Cron Jobs (to trigger scraping daily).
 3. Set the following Environment Variables in Vercel:
-   - `GOOGLE_SHEETS_CREDENTIALS_B64`
-   - `GOOGLE_SHEET_ID`
+   - `SUPABASE_URL`
+   - `SUPABASE_KEY`
    - `OPENROUTER_API_KEY`
    - `SESSION_ENCRYPTION_KEY`
 
@@ -36,4 +36,4 @@ This project is optimized for deployment on Vercel.
 
 ## Configuration
 
-All non-sensitive application configurations (e.g., Schedules, Search Keywords, Enabled Sources, Prompt overrides) are managed directly via the **Settings** page in the UI, which writes to the "Settings" tab in your Google Sheet.
+All non-sensitive application configurations (e.g., Schedules, Search Keywords, Enabled Sources, Prompt overrides) are managed directly via the **Settings** page in the UI.

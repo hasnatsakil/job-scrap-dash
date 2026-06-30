@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import env_settings
-from backend.services.google_sheet import google_sheets_service
+from backend.services.database import db_client
 from backend.scheduler import setup_scheduler
 from backend.routers.api import router as api_router
 
@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if env_settings.environment != "test":
-        google_sheets_service.initialize_sheets()
-        setup_scheduler()
+    logger.info("Application starting up...")
+    db_client.verify_connection()
+    setup_scheduler()
     yield
 
 app = FastAPI(title="AI Job Scraper", lifespan=lifespan)
@@ -38,7 +38,4 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.app:app", host="0.0.0.0", port=env_settings.port, reload=True)
 
-# Register connectors
-from backend.services.connection_manager import connection_manager
-from backend.connectors.linkedin_connector import LinkedInConnector
-connection_manager.register_connector(LinkedInConnector())
+# Phase 1: Authentication logic removed

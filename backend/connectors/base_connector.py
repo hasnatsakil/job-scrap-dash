@@ -10,6 +10,10 @@ class BaseConnector:
         """Initiate connection (login flow). Returns status info."""
         raise NotImplementedError
 
+    async def save_session(self, session_data: dict) -> bool:
+        """Save an externally provided session state."""
+        raise NotImplementedError
+
     async def disconnect(self) -> bool:
         """Clear session and disconnect."""
         raise NotImplementedError

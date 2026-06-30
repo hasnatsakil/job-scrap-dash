@@ -5,10 +5,10 @@ class Deduplicator:
         self.existing_urls: Set[str] = set()
         self.existing_signatures: Set[str] = set()
         for job in existing_jobs:
-            url = job.get("Job URL") or job.get("job_url")
+            url = job.get("job_url")
             if url: self.existing_urls.add(url.strip())
-            company = job.get("Company") or job.get("company", "")
-            title = job.get("Job Title") or job.get("title", "")
+            company = job.get("company", "")
+            title = job.get("title", "")
             if company and title:
                 self.existing_signatures.add(f"{company.lower().strip()}::{title.lower().strip()}")
 

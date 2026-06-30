@@ -6,7 +6,7 @@ from backend.config import env_settings, config_manager
 logger = logging.getLogger(__name__)
 
 class AIProviderResult(BaseModel):
-    keep: bool
+    decision: str
     score: int
     reason: str
 
@@ -23,16 +23,22 @@ class OpenRouterProvider(AIProvider):
             logger.warning(f"Enforcing free model usage. Swapping {model} to openai/gpt-oss-20b:free")
             model = "openai/gpt-oss-20b:free"
 
-        system_content = f"{config.ai_system_prompt}\nReturn ONLY JSON: {{\"keep\": true/false, \"score\": 0-100, \"reason\": \"str\"}}"
-        user_content = f"Title: {job.get('title')}\nCompany: {job.get('company')}\nLocation: {job.get('location')}\nType: {job.get('work_type')}\nDescription: {job.get('description')[:3000]}"
+        system_content = f"{config.ai_system_prompt}\nReturn only valid JSON in this format:\n{{\n  \"score\": 0-100,\n  \"decision\": \"accepted\" | \"rejected\",\n  \"reason\": \"A brief explanation of your decision.\"\n}}"
+        user_content = f"Search Keyword: {job.get('keyword', 'Unknown')}\nTitle: {job.get('title')}\nCompany: {job.get('company')}\nLocation: {job.get('location')}\nType: {job.get('work_type')}\nDescription: {job.get('description')[:3000]}"
         headers = {"Authorization": f"Bearer {env_settings.openrouter_api_key}", "HTTP-Referer": "https://github.com/ai-job-scraper", "X-Title": "AI Job Scraper", "Content-Type": "application/json"}
         payload = {"model": model, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]}
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
                 response.raise_for_status()
-                result = json.loads(response.json()["choices"][0]["message"]["content"])
-                return AIProviderResult(keep=bool(result.get("keep", False)), score=int(result.get("score", 0)), reason=str(result.get("reason", "No reason provided")))
+                content = response.json()["choices"][0]["message"]["content"]
+                if content is None:
+                    raise ValueError("API returned None content")
+                result = json.loads(content)
+                return AIProviderResult(decision=str(result.get("decision", "rejected")), score=int(result.get("score", 0)), reason=str(result.get("reason", "No reason provided")))
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"OpenRouter JSON Parse Error: {e}")
+            return AIProviderResult(decision="accepted", score=50, reason="AI parse error, defaulting to accepted.")
         except Exception as e:
             logger.error(f"OpenRouter API Error: {e}")
             raise e

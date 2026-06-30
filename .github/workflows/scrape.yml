@@ -1,0 +1,50 @@
+name: Daily Job Scraper
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          python -m pip install playwright
+          python -m playwright install chromium
+
+      - name: Load settings from Supabase
+        run: |
+          python -c "
+          import os, json
+          from dotenv import load_dotenv
+          from supabase import create_client
+          client = create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_KEY'])
+          try:
+              data = client.table('settings').select('*').limit(1).single().execute().data
+              if data:
+                  print(f'Loaded settings from Supabase')
+          except:
+              print('Using default settings')
+          "
+
+      - name: Run scraper
+        run: python -c "
+import asyncio
+from backend.services.orchestrator import orchestrator
+asyncio.run(orchestrator.run_all())
+"

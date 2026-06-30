@@ -24,7 +24,8 @@ class AIManager:
         try:
             result: AIProviderResult = await self.provider.evaluate_job_async(job)
             self.daily_requests_used += 1
-            job["AI Score"], job["AI Decision"], job["AI Reason"] = result.score, "Keep" if result.keep else "Reject", result.reason
+            ai_decision = "Keep" if result.decision.lower() == "accepted" else "Reject"
+            job["AI Score"], job["AI Decision"], job["AI Reason"] = result.score, ai_decision, result.reason
             return job
         except Exception as e: return self._mark_pending(job, f"AI Error: {str(e)}")
 
