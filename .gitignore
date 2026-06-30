@@ -17,6 +17,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+har_file/
 eggs/
 .eggs/
 lib64/
