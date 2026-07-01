@@ -23,7 +23,7 @@ const TopNav: React.FC = () => {
 
   const routeInfo = routeTitles[location.pathname] ?? { title: 'Dashboard', crumbs: [] };
 
-  const repoUrl = import.meta.env.VITE_GITHUB_REPO || 'https://github.com/velox/job-scrap-dash';
+  const repoUrl = import.meta.env.VITE_GITHUB_REPO || 'https://github.com/hasnatsakil/job-scrap-dash';
 
   const handleRunScraper = () => {
     window.open(`${repoUrl}/actions/workflows/scrape.yml`, '_blank');
