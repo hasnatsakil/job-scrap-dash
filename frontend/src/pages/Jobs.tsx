@@ -39,6 +39,7 @@ export default function Jobs() {
     { key: 'scraped_at', label: 'Posted', visible: true },
     { key: 'ai_score', label: 'AI Score', visible: true },
     { key: 'ai_status', label: 'Status', visible: true },
+    { key: 'has_description', label: 'Desc', visible: true },
   ]);
 
   const { data: rawData, isLoading } = useQuery({
@@ -301,6 +302,10 @@ export default function Jobs() {
                           <span className="tabular-nums font-medium text-[#FAFAFA]">{job[col.key] ?? '—'}</span>
                         ) : col.key === 'scraped_at' ? (
                           <span className="text-xs">{job[col.key]?.split('T')[0] || '—'}</span>
+                        ) : col.key === 'has_description' ? (
+                          <span className={`text-xs font-medium ${job['description'] ? 'text-green-400' : 'text-red-400'}`}>
+                            {job['description'] ? '✓' : '✗'}
+                          </span>
                         ) : col.key === 'source' ? (
                           <span className="text-xs bg-[#27272A] px-2 py-0.5 rounded-full">{job[col.key]}</span>
                         ) : (

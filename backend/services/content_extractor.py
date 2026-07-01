@@ -52,7 +52,7 @@ class ContentExtractor:
         cleaned_text = re.sub(r'\n\s*\n', '\n\n', text)
         cleaned_text = re.sub(r' +', ' ', cleaned_text).strip()
 
-        if len(cleaned_text) > 100:
+        if cleaned_text:
             job["description"] = cleaned_text
 
         # Extract basic fields if they are missing (text-based fallback)
