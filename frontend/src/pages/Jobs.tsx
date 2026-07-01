@@ -46,7 +46,7 @@ export default function Jobs() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('jobs')
-        .select('id,title,company,location,source,work_type,ai_status,ai_score,ai_reason,scraped_at,job_url,keyword')
+        .select('id,title,company,location,source,work_type,ai_status,ai_score,scraped_at,job_url,keyword')
         .order('scraped_at', { ascending: false })
         .limit(500);
       if (error) console.error('Jobs fetch error:', error);
