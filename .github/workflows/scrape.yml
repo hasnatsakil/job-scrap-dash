@@ -43,8 +43,9 @@ jobs:
           "
 
       - name: Run scraper
-        run: python -c "
-import asyncio
-from backend.services.orchestrator import orchestrator
-asyncio.run(orchestrator.run_all())
-"
+        run: |
+          python -c "
+          import asyncio
+          from backend.services.orchestrator import orchestrator
+          asyncio.run(orchestrator.run_all())
+          "
