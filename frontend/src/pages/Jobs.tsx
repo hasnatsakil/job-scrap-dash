@@ -134,8 +134,8 @@ export default function Jobs() {
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-10 bg-[#18181B] rounded-lg" />
-        <div className="h-96 bg-[#18181B] rounded-lg border border-[#27272A]" />
+        <div className="h-10 bg-[var(--c-card)] rounded-lg" />
+        <div className="h-96 bg-[var(--c-card)] rounded-lg border border-[var(--c-border)]" />
       </div>
     );
   }
@@ -146,15 +146,15 @@ export default function Jobs() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A]" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--c-text3)]" />
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search jobs, companies..."
-              className="w-full h-9 pl-8 pr-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50"
+              className="w-full h-9 pl-8 pr-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#71717A] hover:text-[#FAFAFA]">
+              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--c-text3)] hover:text-[var(--c-text)]">
                 <X size={12} />
               </button>
             )}
@@ -163,7 +163,7 @@ export default function Jobs() {
           <select
             value={sourceFilter}
             onChange={e => { setSourceFilter(e.target.value); setPage(1); }}
-            className="h-9 px-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none focus:border-blue-500/50 cursor-pointer"
+            className="h-9 px-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none focus:border-blue-500/50 cursor-pointer"
           >
             <option value="">All Sources</option>
             {sources.map(s => <option key={s as string} value={s as string}>{s as string}</option>)}
@@ -172,7 +172,7 @@ export default function Jobs() {
           <select
             value={decisionFilter}
             onChange={e => { setDecisionFilter(e.target.value); setPage(1); }}
-            className="h-9 px-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none focus:border-blue-500/50 cursor-pointer"
+            className="h-9 px-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none focus:border-blue-500/50 cursor-pointer"
           >
             <option value="">All AI Status</option>
             <option value="Keep">Keep</option>
@@ -182,7 +182,7 @@ export default function Jobs() {
           <select
             value={workTypeFilter}
             onChange={e => { setWorkTypeFilter(e.target.value); setPage(1); }}
-            className="h-9 px-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none focus:border-blue-500/50 cursor-pointer"
+            className="h-9 px-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none focus:border-blue-500/50 cursor-pointer"
           >
             <option value="">All Work Types</option>
             {workTypes.map(w => <option key={w as string} value={w as string}>{w as string}</option>)}
@@ -191,7 +191,7 @@ export default function Jobs() {
           {activeFilters.length > 0 && (
             <button
               onClick={() => { setSourceFilter(''); setDecisionFilter(''); setWorkTypeFilter(''); setPage(1); }}
-              className="h-9 px-3 text-sm text-[#71717A] hover:text-[#FAFAFA] border border-[#27272A] rounded-md transition-colors flex items-center gap-1.5"
+              className="h-9 px-3 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)] border border-[var(--c-border)] rounded-md transition-colors flex items-center gap-1.5"
             >
               <X size={12} /> Reset
             </button>
@@ -201,14 +201,14 @@ export default function Jobs() {
             <div className="relative">
               <button
                 onClick={() => setShowColumns(c => !c)}
-                className="h-9 px-3 text-sm text-[#71717A] hover:text-[#FAFAFA] border border-[#27272A] rounded-md transition-colors flex items-center gap-1.5"
+                className="h-9 px-3 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)] border border-[var(--c-border)] rounded-md transition-colors flex items-center gap-1.5"
               >
                 <SlidersHorizontal size={13} /> Columns
               </button>
               {showColumns && (
-                <div className="absolute right-0 top-10 bg-[#18181B] border border-[#27272A] rounded-lg p-3 z-10 shadow-xl min-w-[160px]">
+                <div className="absolute right-0 top-10 bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-3 z-10 shadow-xl min-w-[160px]">
                   {columns.map(col => (
-                    <label key={col.key} className="flex items-center gap-2 py-1 text-sm text-[#A1A1AA] cursor-pointer hover:text-[#FAFAFA]">
+                    <label key={col.key} className="flex items-center gap-2 py-1 text-sm text-[var(--c-text2)] cursor-pointer hover:text-[var(--c-text)]">
                       <input
                         type="checkbox"
                         checked={col.visible}
@@ -224,7 +224,7 @@ export default function Jobs() {
 
             <button
               onClick={exportCSV}
-              className="h-9 px-3 text-sm text-[#71717A] hover:text-[#FAFAFA] border border-[#27272A] rounded-md transition-colors flex items-center gap-1.5"
+              className="h-9 px-3 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)] border border-[var(--c-border)] rounded-md transition-colors flex items-center gap-1.5"
             >
               <Download size={13} /> Export
             </button>
@@ -233,7 +233,7 @@ export default function Jobs() {
 
         {activeFilters.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-[#71717A]">Filters:</span>
+            <span className="text-xs text-[var(--c-text3)]">Filters:</span>
             {sourceFilter && (
               <span className="flex items-center gap-1 text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
                 Source: {sourceFilter}
@@ -257,23 +257,23 @@ export default function Jobs() {
       </div>
 
       {/* Table */}
-      <div className="bg-[#18181B] border border-[#27272A] rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272A]">
-          <span className="text-xs text-[#71717A]">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)]">
+          <span className="text-xs text-[var(--c-text3)]">
             {filtered.length.toLocaleString()} jobs
-            {filtered.length !== jobs.length && <span className="text-[#3F3F46]"> (of {jobs.length.toLocaleString()})</span>}
+            {filtered.length !== jobs.length && <span className="text-[var(--c-icon)]"> (of {jobs.length.toLocaleString()})</span>}
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#27272A]">
+              <tr className="border-b border-[var(--c-border)]">
                 {visibleColumns.map(col => (
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
-                    className="text-left px-4 py-2.5 text-xs font-medium text-[#71717A] cursor-pointer hover:text-[#A1A1AA] whitespace-nowrap select-none"
+                    className="text-left px-4 py-2.5 text-xs font-medium text-[var(--c-text3)] cursor-pointer hover:text-[var(--c-text2)] whitespace-nowrap select-none"
                   >
                     <div className="flex items-center gap-1">
                       {col.label}
@@ -288,7 +288,7 @@ export default function Jobs() {
                 <tr>
                   <td colSpan={visibleColumns.length} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <p className="text-sm text-[#71717A]">
+                      <p className="text-sm text-[var(--c-text3)]">
                         {jobs.length === 0
                           ? 'No jobs yet — connect to the backend and run the scraper.'
                           : 'No jobs match your filters.'}
@@ -301,18 +301,18 @@ export default function Jobs() {
                   <tr
                     key={i}
                     onClick={() => handleRowClick(job)}
-                    className="border-b border-[#27272A] hover:bg-[#111113] cursor-pointer transition-colors last:border-0"
+                    className="border-b border-[var(--c-border)] hover:bg-[var(--c-input)] cursor-pointer transition-colors last:border-0"
                   >
                     {visibleColumns.map(col => (
-                      <td key={col.key} className="px-4 py-3 text-[#A1A1AA]">
+                      <td key={col.key} className="px-4 py-3 text-[var(--c-text2)]">
                         {col.key === 'title' ? (
-                          <div className="font-medium text-[#FAFAFA] max-w-[200px] truncate">{job[col.key]}</div>
+                          <div className="font-medium text-[var(--c-text)] max-w-[200px] truncate">{job[col.key]}</div>
                         ) : col.key === 'ai_status' ? (
                           <span className={`text-xs border px-2 py-0.5 rounded-full font-medium ${getDecisionStyle(job[col.key] || '')}`}>
                             {job[col.key] || 'Pending'}
                           </span>
                         ) : col.key === 'ai_score' ? (
-                          <span className="tabular-nums font-medium text-[#FAFAFA]">{job[col.key] ?? '—'}</span>
+                          <span className="tabular-nums font-medium text-[var(--c-text)]">{job[col.key] ?? '—'}</span>
                         ) : col.key === 'scraped_at' ? (
                           <span className="text-xs">{job[col.key]?.split('T')[0] || '—'}</span>
                         ) : col.key === 'has_description' ? (
@@ -320,7 +320,7 @@ export default function Jobs() {
                             {job['description'] ? '✓' : '✗'}
                           </span>
                         ) : col.key === 'source' ? (
-                          <span className="text-xs bg-[#27272A] px-2 py-0.5 rounded-full">{job[col.key]}</span>
+                          <span className="text-xs bg-[var(--c-pill)] px-2 py-0.5 rounded-full">{job[col.key]}</span>
                         ) : (
                           <span className="max-w-[140px] truncate block">{job[col.key] || '—'}</span>
                         )}
@@ -334,13 +334,13 @@ export default function Jobs() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[#27272A]">
-            <span className="text-xs text-[#71717A]">Page {page} of {totalPages}</span>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--c-border)]">
+            <span className="text-xs text-[var(--c-text3)]">Page {page} of {totalPages}</span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="h-7 w-7 flex items-center justify-center rounded-md border border-[#27272A] text-[#71717A] hover:text-[#FAFAFA] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="h-7 w-7 flex items-center justify-center rounded-md border border-[var(--c-border)] text-[var(--c-text3)] hover:text-[var(--c-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft size={13} />
               </button>
@@ -353,7 +353,7 @@ export default function Jobs() {
                     className={`h-7 w-7 text-xs rounded-md border transition-colors ${
                       p === page
                         ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                        : 'border-[#27272A] text-[#71717A] hover:text-[#FAFAFA]'
+                        : 'border-[var(--c-border)] text-[var(--c-text3)] hover:text-[var(--c-text)]'
                     }`}
                   >
                     {p}
@@ -363,7 +363,7 @@ export default function Jobs() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="h-7 w-7 flex items-center justify-center rounded-md border border-[#27272A] text-[#71717A] hover:text-[#FAFAFA] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="h-7 w-7 flex items-center justify-center rounded-md border border-[var(--c-border)] text-[var(--c-text3)] hover:text-[var(--c-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight size={13} />
               </button>

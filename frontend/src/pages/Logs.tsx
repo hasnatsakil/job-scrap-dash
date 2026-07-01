@@ -34,9 +34,9 @@ const LogRow: React.FC<{ log: LogEntry }> = ({ log }) => {
     <>
       <tr
         onClick={() => setExpanded(e => !e)}
-        className="border-b border-[#27272A] hover:bg-[#111113] cursor-pointer transition-colors"
+        className="border-b border-[var(--c-border)] hover:bg-[var(--c-input)] cursor-pointer transition-colors"
       >
-        <td className="px-4 py-3 text-xs text-[#71717A] whitespace-nowrap">
+        <td className="px-4 py-3 text-xs text-[var(--c-text3)] whitespace-nowrap">
           {log.time ? new Date(log.time).toLocaleString() : (log.date || '—')}
         </td>
         <td className="px-4 py-3">
@@ -44,22 +44,22 @@ const LogRow: React.FC<{ log: LogEntry }> = ({ log }) => {
             {log.status || 'Info'}
           </span>
         </td>
-        <td className="px-4 py-3 text-xs text-[#A1A1AA]">{log.keyword || '—'}</td>
-        <td className="px-4 py-3 text-xs text-[#A1A1AA]">{log.source || '—'}</td>
-        <td className="px-4 py-3 text-xs text-[#71717A] max-w-[300px] truncate">{log.message || '—'}</td>
-        <td className="px-4 py-3 text-xs text-[#A1A1AA] tabular-nums">{log.jobs_found ?? '—'}</td>
-        <td className="px-4 py-3 text-[#71717A]">
+        <td className="px-4 py-3 text-xs text-[var(--c-text2)]">{log.keyword || '—'}</td>
+        <td className="px-4 py-3 text-xs text-[var(--c-text2)]">{log.source || '—'}</td>
+        <td className="px-4 py-3 text-xs text-[var(--c-text3)] max-w-[300px] truncate">{log.message || '—'}</td>
+        <td className="px-4 py-3 text-xs text-[var(--c-text2)] tabular-nums">{log.jobs_found ?? '—'}</td>
+        <td className="px-4 py-3 text-[var(--c-text3)]">
           {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </td>
       </tr>
       {expanded && (
-        <tr className="bg-[#0F0F10] border-b border-[#27272A]">
+        <tr className="bg-[var(--c-bg)] border-b border-[var(--c-border)]">
           <td colSpan={7} className="px-6 py-4">
             <div className="space-y-2 text-xs">
               {log.message && (
                 <div>
-                  <span className="text-[#71717A] font-medium">Message: </span>
-                  <span className="text-[#A1A1AA]">{log.message}</span>
+                  <span className="text-[var(--c-text3)] font-medium">Message: </span>
+                  <span className="text-[var(--c-text2)]">{log.message}</span>
                 </div>
               )}
               {log.error && (
@@ -69,11 +69,11 @@ const LogRow: React.FC<{ log: LogEntry }> = ({ log }) => {
                 </div>
               )}
               {extraEntries.length > 0 && (
-                <div className="grid grid-cols-3 gap-4 mt-2 pt-2 border-t border-[#27272A]">
+                <div className="grid grid-cols-3 gap-4 mt-2 pt-2 border-t border-[var(--c-border)]">
                   {extraEntries.map(([k, v]) => (
                     <div key={k}>
-                      <span className="text-[#71717A]">{k}: </span>
-                      <span className="text-[#A1A1AA]">{String(v)}</span>
+                      <span className="text-[var(--c-text3)]">{k}: </span>
+                      <span className="text-[var(--c-text2)]">{String(v)}</span>
                     </div>
                   ))}
                 </div>
@@ -122,8 +122,8 @@ export default function Logs() {
   if (isLoading) {
     return (
       <div className="space-y-3 animate-pulse">
-        <div className="h-10 bg-[#18181B] rounded-lg" />
-        <div className="h-96 bg-[#18181B] rounded-lg border border-[#27272A]" />
+        <div className="h-10 bg-[var(--c-card)] rounded-lg" />
+        <div className="h-96 bg-[var(--c-card)] rounded-lg border border-[var(--c-border)]" />
       </div>
     );
   }
@@ -133,18 +133,18 @@ export default function Logs() {
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#71717A]" />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--c-text3)]" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search logs..."
-            className="w-full h-9 pl-7 pr-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50"
+            className="w-full h-9 pl-7 pr-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50"
           />
         </div>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="h-9 px-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none cursor-pointer"
+          className="h-9 px-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none cursor-pointer"
         >
           <option value="">All Status</option>
           <option value="success">Success</option>
@@ -155,7 +155,7 @@ export default function Logs() {
         <select
           value={sourceFilter}
           onChange={e => setSourceFilter(e.target.value)}
-          className="h-9 px-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none cursor-pointer"
+          className="h-9 px-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none cursor-pointer"
         >
           <option value="">All Sources</option>
           {sources.map(s => <option key={s as string} value={s as string}>{s as string}</option>)}
@@ -163,22 +163,22 @@ export default function Logs() {
         {(search || statusFilter || sourceFilter) && (
           <button
             onClick={() => { setSearch(''); setStatusFilter(''); setSourceFilter(''); }}
-            className="h-9 px-3 text-sm text-[#71717A] hover:text-[#FAFAFA] border border-[#27272A] rounded-md transition-colors flex items-center gap-1.5"
+            className="h-9 px-3 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)] border border-[var(--c-border)] rounded-md transition-colors flex items-center gap-1.5"
           >
             <X size={12} /> Reset
           </button>
         )}
-        <span className="ml-auto text-xs text-[#71717A]">{filtered.length} entries</span>
+        <span className="ml-auto text-xs text-[var(--c-text3)]">{filtered.length} entries</span>
       </div>
 
       {/* Table */}
-      <div className="bg-[#18181B] border border-[#27272A] rounded-lg overflow-hidden">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#27272A]">
+              <tr className="border-b border-[var(--c-border)]">
                 {['Time', 'Status', 'Keyword', 'Source', 'Message', 'Jobs Found', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-[#71717A] whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-[var(--c-text3)] whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -187,8 +187,8 @@ export default function Logs() {
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <FileText size={28} className="text-[#27272A]" />
-                      <p className="text-sm text-[#71717A]">
+                      <FileText size={28} className="text-[var(--c-icon)]" />
+                      <p className="text-sm text-[var(--c-text3)]">
                         {data.length === 0
                           ? 'No logs yet. Run the scraper to see activity here.'
                           : 'No logs match your filters.'}

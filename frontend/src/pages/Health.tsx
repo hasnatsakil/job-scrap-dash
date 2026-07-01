@@ -103,7 +103,7 @@ export default function Health() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-pulse">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-44 bg-[#18181B] rounded-lg border border-[#27272A]" />
+          <div key={i} className="h-44 bg-[var(--c-card)] rounded-lg border border-[var(--c-border)]" />
         ))}
       </div>
     );
@@ -112,10 +112,10 @@ export default function Health() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[#71717A]">Auto-refreshes every 10 seconds · Last updated {lastUpdated}</p>
+        <p className="text-xs text-[var(--c-text3)]">Auto-refreshes every 10 seconds · Last updated {lastUpdated}</p>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs text-[#71717A]">Live</span>
+          <span className="text-xs text-[var(--c-text3)]">Live</span>
         </div>
       </div>
 
@@ -126,19 +126,19 @@ export default function Health() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05, duration: 0.2 }}
-            className="bg-[#18181B] border border-[#27272A] rounded-lg p-5"
+            className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-5"
           >
             <div className="flex items-center gap-2 mb-4">
               {section.icon}
-              <h3 className="text-sm font-semibold text-[#FAFAFA]">{section.title}</h3>
+              <h3 className="text-sm font-semibold text-[var(--c-text)]">{section.title}</h3>
             </div>
             <div className="space-y-3">
               {section.items.map(({ label, value, status }) => (
                 <div key={label} className="flex items-center justify-between">
-                  <span className="text-xs text-[#71717A]">{label}</span>
+                  <span className="text-xs text-[var(--c-text3)]">{label}</span>
                   <div className="flex items-center gap-2">
                     {status && <StatusDot status={status} />}
-                    <span className={`text-xs font-medium ${status === 'green' ? 'text-green-400' : status === 'red' ? 'text-red-400' : status === 'yellow' ? 'text-yellow-400' : 'text-[#A1A1AA]'}`}>
+                    <span className={`text-xs font-medium ${status === 'green' ? 'text-green-400' : status === 'red' ? 'text-red-400' : status === 'yellow' ? 'text-yellow-400' : 'text-[var(--c-text2)]'}`}>
                       {value}
                     </span>
                   </div>
@@ -150,15 +150,15 @@ export default function Health() {
       </div>
 
       {/* AI Budget Progress */}
-      <div className="bg-[#18181B] border border-[#27272A] rounded-lg p-5">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Brain size={15} className="text-purple-400" />
-            <h3 className="text-sm font-semibold text-[#FAFAFA]">AI Budget Overview</h3>
+            <h3 className="text-sm font-semibold text-[var(--c-text)]">AI Budget Overview</h3>
           </div>
-          <span className="text-xs text-[#71717A]">{budgetPct}% used</span>
+          <span className="text-xs text-[var(--c-text3)]">{budgetPct}% used</span>
         </div>
-        <div className="h-2 bg-[#27272A] rounded-full overflow-hidden">
+        <div className="h-2 bg-[var(--c-pill)] rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${budgetPct}%` }}
@@ -166,7 +166,7 @@ export default function Health() {
             className={`h-full rounded-full ${budgetPct > 85 ? 'bg-red-500' : budgetPct > 60 ? 'bg-yellow-500' : 'bg-purple-500'}`}
           />
         </div>
-        <div className="flex justify-between mt-2 text-xs text-[#71717A]">
+        <div className="flex justify-between mt-2 text-xs text-[var(--c-text3)]">
           <span>0 requests</span>
           <span>{budgetTotal} requests</span>
         </div>

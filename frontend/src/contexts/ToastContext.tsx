@@ -56,16 +56,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-lg border bg-[#18181B] shadow-xl ${borders[t.type]}`}
+              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-lg border bg-[var(--c-card)] shadow-xl ${borders[t.type]}`}
             >
               <div className="mt-0.5 shrink-0">{icons[t.type]}</div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#FAFAFA] leading-tight">{t.title}</p>
-                {t.description && <p className="text-xs text-[#A1A1AA] mt-0.5">{t.description}</p>}
+                <p className="text-sm font-medium text-[var(--c-text)] leading-tight">{t.title}</p>
+                {t.description && <p className="text-xs text-[var(--c-text2)] mt-0.5">{t.description}</p>}
               </div>
               <button
                 onClick={() => remove(t.id)}
-                className="shrink-0 text-[#71717A] hover:text-[#FAFAFA] transition-colors"
+                className="shrink-0 text-[var(--c-text3)] hover:text-[var(--c-text)] transition-colors"
               >
                 <X size={14} />
               </button>

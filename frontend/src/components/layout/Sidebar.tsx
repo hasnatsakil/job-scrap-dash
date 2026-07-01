@@ -33,7 +33,7 @@ const StatusPill: React.FC<{ label: string; ok: boolean; collapsed: boolean }> =
           animate={{ opacity: 1, width: 'auto' }}
           exit={{ opacity: 0, width: 0 }}
           transition={{ duration: 0.15 }}
-          className="text-xs text-[#71717A] whitespace-nowrap overflow-hidden"
+          className="text-xs text-[var(--c-text3)] whitespace-nowrap overflow-hidden"
         >
           {label}
         </motion.span>
@@ -65,10 +65,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     <motion.div
       animate={{ width: collapsed ? 64 : 280 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="relative flex flex-col h-screen bg-[#09090B] border-r border-[#27272A] shrink-0 overflow-hidden"
+      className="relative flex flex-col h-screen bg-[var(--c-bg)] border-r border-[var(--c-border)] shrink-0 overflow-hidden"
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-[72px] border-b border-[#27272A] shrink-0">
+      <div className="flex items-center gap-3 px-4 h-[72px] border-b border-[var(--c-border)] shrink-0">
         <div className="w-8 h-8 flex items-center justify-center shrink-0">
           <img src="/favicon.svg" alt="Logo" className="w-6 h-6" />
         </div>
@@ -81,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <span className="font-semibold text-[#FAFAFA] text-sm whitespace-nowrap">JobScrape AI</span>
+              <span className="font-semibold text-[var(--c-text)] text-sm whitespace-nowrap">JobScrape AI</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -98,8 +98,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 mx-2 px-3 py-2 rounded-md mb-0.5 transition-all duration-150 group ${
                 active
-                  ? 'bg-[#27272A] text-[#FAFAFA]'
-                  : 'text-[#71717A] hover:bg-[#18181B] hover:text-[#A1A1AA]'
+                  ? 'bg-[var(--c-pill)] text-[var(--c-text)]'
+                  : 'text-[var(--c-text3)] hover:bg-[var(--c-card)] hover:text-[var(--c-text2)]'
               }`}
             >
               <Icon size={18} className="shrink-0" />
@@ -128,13 +128,13 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       </nav>
 
       {/* Bottom status */}
-      <div className="border-t border-[#27272A] p-2 space-y-0.5">
+      <div className="border-t border-[var(--c-border)] p-2 space-y-0.5">
         <StatusPill label="Scheduler" ok={schedulerOk} collapsed={collapsed} />
         <StatusPill label="Database" ok={sheetsOk} collapsed={collapsed} />
         <StatusPill label="AI Budget" ok={aiOk} collapsed={collapsed} />
         {!collapsed && (
           <div className="px-2 pt-1">
-            <span className="text-[10px] text-[#3F3F46]">v1.0.0</span>
+            <span className="text-[10px] text-[var(--c-icon)]">v1.0.0</span>
           </div>
         )}
       </div>
@@ -142,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       {/* Collapse toggle */}
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-[84px] w-6 h-6 rounded-full bg-[#27272A] border border-[#3F3F46] flex items-center justify-center text-[#71717A] hover:text-[#FAFAFA] transition-colors z-10"
+        className="absolute -right-3 top-[84px] w-6 h-6 rounded-full bg-[var(--c-pill)] border border-[var(--c-hover)] flex items-center justify-center text-[var(--c-text3)] hover:text-[var(--c-text)] transition-colors z-10"
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>

@@ -47,18 +47,18 @@ interface SettingFieldProps {
 }
 
 const SettingField: React.FC<SettingFieldProps> = ({ label, description, children }) => (
-  <div className="flex items-start justify-between gap-6 py-4 border-b border-[#27272A] last:border-0">
+  <div className="flex items-start justify-between gap-6 py-4 border-b border-[var(--c-border)] last:border-0">
     <div className="flex-1">
-      <label className="text-sm font-medium text-[#FAFAFA]">{label}</label>
-      {description && <p className="text-xs text-[#71717A] mt-0.5 leading-relaxed">{description}</p>}
+      <label className="text-sm font-medium text-[var(--c-text)]">{label}</label>
+      {description && <p className="text-xs text-[var(--c-text3)] mt-0.5 leading-relaxed">{description}</p>}
     </div>
     <div className="shrink-0 w-64">{children}</div>
   </div>
 );
 
-const inputClass = "w-full h-9 px-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50 transition-colors";
-const selectClass = "w-full h-9 px-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#A1A1AA] outline-none focus:border-blue-500/50 cursor-pointer transition-colors";
-const textareaClass = "w-full p-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#FAFAFA] font-mono placeholder:text-[#71717A] outline-none focus:border-blue-500/50 transition-colors resize-y min-h-[120px]";
+const inputClass = "w-full h-9 px-3 text-sm bg-[var(--c-input)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50 transition-colors";
+const selectClass = "w-full h-9 px-3 text-sm bg-[var(--c-input)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none focus:border-blue-500/50 cursor-pointer transition-colors";
+const textareaClass = "w-full p-3 text-sm bg-[var(--c-input)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] font-mono placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50 transition-colors resize-y min-h-[120px]";
 
 interface SectionProps {
   id: string;
@@ -71,19 +71,19 @@ interface SectionProps {
 const Section: React.FC<SectionProps> = ({ id, icon, title, description, children }) => {
   const [open, setOpen] = useState(true);
   return (
-    <div id={id} className="bg-[#18181B] border border-[#27272A] rounded-lg overflow-hidden">
+    <div id={id} className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#111113] transition-colors text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--c-input)] transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="text-[#71717A]">{icon}</div>
+          <div className="text-[var(--c-text3)]">{icon}</div>
           <div>
-            <h3 className="text-sm font-semibold text-[#FAFAFA]">{title}</h3>
-            <p className="text-xs text-[#71717A] mt-0.5">{description}</p>
+            <h3 className="text-sm font-semibold text-[var(--c-text)]">{title}</h3>
+            <p className="text-xs text-[var(--c-text3)] mt-0.5">{description}</p>
           </div>
         </div>
-        <ChevronDown size={15} className={`text-[#71717A] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={15} className={`text-[var(--c-text3)] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
         {open && (
@@ -94,7 +94,7 @@ const Section: React.FC<SectionProps> = ({ id, icon, title, description, childre
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-5 border-t border-[#27272A]">
+            <div className="px-5 border-t border-[var(--c-border)]">
               {children}
             </div>
           </motion.div>
@@ -173,7 +173,7 @@ export default function Settings() {
     return (
       <div className="space-y-4 animate-pulse">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-48 bg-[#18181B] rounded-lg border border-[#27272A]" />
+          <div key={i} className="h-48 bg-[var(--c-card)] rounded-lg border border-[var(--c-border)]" />
         ))}
       </div>
     );
@@ -182,7 +182,7 @@ export default function Settings() {
   return (
     <div className="space-y-4 pb-24">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-[#71717A]">Manage your scraper configuration, AI settings, and integrations.</p>
+        <p className="text-sm text-[var(--c-text3)]">Manage your scraper configuration, AI settings, and integrations.</p>
         <button
           onClick={handleSaveFull}
           disabled={!hasChanges && !mutation.isPending}
@@ -221,12 +221,12 @@ export default function Settings() {
               const enabled = form.enabled_sources?.includes(src.id) || false;
               return (
                 <label key={src.id} className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${enabled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-[#111113] border-[#27272A] text-transparent group-hover:border-[#3F3F46]'}`}>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${enabled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-[var(--c-input)] border-[var(--c-border)] text-transparent group-hover:border-[var(--c-hover)]'}`}>
                     <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="2.5 7 5.5 10 11.5 4" />
                     </svg>
                   </div>
-                  <span className={`text-sm ${enabled ? 'text-[#FAFAFA]' : 'text-[#71717A] group-hover:text-[#A1A1AA]'}`}>{src.label}</span>
+                  <span className={`text-sm ${enabled ? 'text-[var(--c-text)]' : 'text-[var(--c-text3)] group-hover:text-[var(--c-text2)]'}`}>{src.label}</span>
                   <input
                     type="checkbox"
                     className="hidden"
@@ -354,16 +354,16 @@ export default function Settings() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#27272A] bg-[#09090B]/95 backdrop-blur px-6 py-4 flex items-center justify-between shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--c-border)] bg-[var(--c-bg)]/95 backdrop-blur px-6 py-4 flex items-center justify-between shadow-2xl"
           >
-            <p className="text-sm text-[#A1A1AA]">You have unsaved changes.</p>
+            <p className="text-sm text-[var(--c-text2)]">You have unsaved changes.</p>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
                   setForm(settings ?? {});
                   setIsDirty(false);
                 }}
-                className="h-9 px-4 text-sm text-[#71717A] hover:text-[#FAFAFA] border border-[#27272A] rounded-md transition-colors"
+                className="h-9 px-4 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)] border border-[var(--c-border)] rounded-md transition-colors"
               >
                 Discard
               </button>

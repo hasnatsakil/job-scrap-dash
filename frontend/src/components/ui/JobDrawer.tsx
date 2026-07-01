@@ -25,10 +25,10 @@ interface JobDrawerProps {
 
 const DrawerRow: React.FC<{ icon: React.ReactNode; label: string; value?: string }> = ({ icon, label, value }) => (
   <div className="flex items-start gap-3">
-    <div className="text-[#71717A] mt-0.5 shrink-0">{icon}</div>
+    <div className="text-[var(--c-text3)] mt-0.5 shrink-0">{icon}</div>
     <div>
-      <div className="text-xs text-[#71717A] mb-0.5">{label}</div>
-      <div className="text-sm text-[#FAFAFA]">{value || '—'}</div>
+      <div className="text-xs text-[var(--c-text3)] mb-0.5">{label}</div>
+      <div className="text-sm text-[var(--c-text)]">{value || '—'}</div>
     </div>
   </div>
 );
@@ -76,22 +76,22 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-[600px] max-w-full bg-[#111113] border-l border-[#27272A] z-50 flex flex-col overflow-hidden"
+            className="fixed right-0 top-0 h-full w-[600px] max-w-full bg-[var(--c-input)] border-l border-[var(--c-border)] z-50 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-[#27272A]">
+            <div className="flex items-start justify-between p-6 border-b border-[var(--c-border)]">
               <div className="flex-1 min-w-0 pr-4">
-                <h2 className="text-base font-semibold text-[#FAFAFA] leading-tight mb-1 line-clamp-2">
+                <h2 className="text-base font-semibold text-[var(--c-text)] leading-tight mb-1 line-clamp-2">
                   {job['title'] || 'Untitled Position'}
                 </h2>
-                <div className="flex items-center gap-1.5 text-sm text-[#A1A1AA]">
+                <div className="flex items-center gap-1.5 text-sm text-[var(--c-text2)]">
                   <Building2 size={13} />
                   <span>{job['company'] || 'Unknown Company'}</span>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="text-[#71717A] hover:text-[#FAFAFA] transition-colors shrink-0"
+                className="text-[var(--c-text3)] hover:text-[var(--c-text)] transition-colors shrink-0"
               >
                 <X size={18} />
               </button>
@@ -101,7 +101,7 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Details */}
               <div>
-                <h3 className="text-xs font-medium text-[#71717A] uppercase tracking-wide mb-4">Details</h3>
+                <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-4">Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <DrawerRow icon={<MapPin size={14} />} label="Location" value={job['location']} />
                   <DrawerRow icon={<Tag size={14} />} label="Work Type" value={job['work_type']} />
@@ -112,7 +112,7 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
 
               {/* AI Analysis */}
               <div>
-                <h3 className="text-xs font-medium text-[#71717A] uppercase tracking-wide mb-4">AI Analysis</h3>
+                <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-4">AI Analysis</h3>
                 <div className={`rounded-lg border p-4 ${decisionBg}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -132,29 +132,29 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
               {/* Description */}
               {descBlocks.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-medium text-[#71717A] uppercase tracking-wide mb-3">Description</h3>
+                  <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-3">Description</h3>
                   <div className="space-y-3">
                     {descBlocks.map((block, i) => {
                       if (block.type === 'field') {
                         const icon = fieldIcon(block.label);
                         return (
                           <div key={i} className="flex items-center gap-2.5 text-sm">
-                            <span className="text-[#71717A] shrink-0">{icon}</span>
-                            <span className="text-[#A1A1AA]">{block.label}:</span>
-                            <span className="text-[#FAFAFA] font-medium">{block.value}</span>
+                            <span className="text-[var(--c-text3)] shrink-0">{icon}</span>
+                            <span className="text-[var(--c-text2)]">{block.label}:</span>
+                            <span className="text-[var(--c-text)] font-medium">{block.value}</span>
                           </div>
                         );
                       }
                       if (block.type === 'heading') {
                         return (
                           <div key={i} className="relative pt-2">
-                            <h4 className="text-sm font-semibold text-[#FAFAFA]">{block.text}</h4>
-                            <div className="mt-1.5 h-px bg-[#27272A]" />
+                            <h4 className="text-sm font-semibold text-[var(--c-text)]">{block.text}</h4>
+                            <div className="mt-1.5 h-px bg-[var(--c-pill)]" />
                           </div>
                         );
                       }
                       return (
-                        <p key={i} className="text-sm text-[#A1A1AA] leading-relaxed whitespace-pre-wrap">{block.text}</p>
+                        <p key={i} className="text-sm text-[var(--c-text2)] leading-relaxed whitespace-pre-wrap">{block.text}</p>
                       );
                     })}
                   </div>
@@ -163,7 +163,7 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
             </div>
 
             {/* Footer actions */}
-            <div className="p-4 border-t border-[#27272A] flex items-center gap-2">
+            <div className="p-4 border-t border-[var(--c-border)] flex items-center gap-2">
               {job['job_url'] && (
                 <a
                   href={job['job_url']}
@@ -178,17 +178,17 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
               {job['job_url'] && (
                 <button
                   onClick={() => navigator.clipboard.writeText(job['job_url'] ?? '')}
-                  className="flex items-center gap-2 h-9 px-3 rounded-md border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] text-sm transition-colors"
+                  className="flex items-center gap-2 h-9 px-3 rounded-md border border-[var(--c-border)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:border-[var(--c-hover)] text-sm transition-colors"
                 >
                   <Copy size={14} />
                   Copy URL
                 </button>
               )}
-              <button className="flex items-center gap-2 h-9 px-3 rounded-md border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] text-sm transition-colors">
+              <button className="flex items-center gap-2 h-9 px-3 rounded-md border border-[var(--c-border)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:border-[var(--c-hover)] text-sm transition-colors">
                 <Star size={14} />
                 Favorite
               </button>
-              <button className="flex items-center gap-2 h-9 px-3 rounded-md border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] text-sm transition-colors ml-auto">
+              <button className="flex items-center gap-2 h-9 px-3 rounded-md border border-[var(--c-border)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:border-[var(--c-hover)] text-sm transition-colors ml-auto">
                 <RefreshCw size={14} />
                 Refresh AI
               </button>

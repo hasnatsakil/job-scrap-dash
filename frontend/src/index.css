@@ -5,6 +5,36 @@
 @tailwind utilities;
 
 @layer base {
+  :root, [data-theme="dark"] {
+    --c-bg: #09090B;
+    --c-card: #18181B;
+    --c-input: #111113;
+    --c-border: #27272A;
+    --c-pill: #27272A;
+    --c-hover: #3F3F46;
+    --c-text: #FAFAFA;
+    --c-text2: #A1A1AA;
+    --c-text3: #71717A;
+    --c-icon: #3F3F46;
+    --c-strong: #FAFAFA;
+    --c-icon-bg: #27272A;
+  }
+
+  [data-theme="light"] {
+    --c-bg: #FAFAFA;
+    --c-card: #FFFFFF;
+    --c-input: #F4F4F5;
+    --c-border: #E4E4E7;
+    --c-pill: #E4E4E7;
+    --c-hover: #D4D4D8;
+    --c-text: #09090B;
+    --c-text2: #52525B;
+    --c-text3: #A1A1AA;
+    --c-icon: #A1A1AA;
+    --c-strong: #09090B;
+    --c-icon-bg: #E4E4E7;
+  }
+
   :root {
     /* Spec exact palette */
     --background: 240 5% 6%;       /* #09090B */

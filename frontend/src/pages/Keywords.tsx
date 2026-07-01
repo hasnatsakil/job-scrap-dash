@@ -88,9 +88,9 @@ export default function Keywords() {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="grid grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-[#18181B] rounded-lg border border-[#27272A]" />)}
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-[var(--c-card)] rounded-lg border border-[var(--c-border)]" />)}
         </div>
-        <div className="h-64 bg-[#18181B] rounded-lg border border-[#27272A]" />
+        <div className="h-64 bg-[var(--c-card)] rounded-lg border border-[var(--c-border)]" />
       </div>
     );
   }
@@ -106,15 +106,15 @@ export default function Keywords() {
       </div>
 
       {/* Table */}
-      <div className="bg-[#18181B] border border-[#27272A] rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272A] gap-3">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)] gap-3">
           <div className="relative flex-1 max-w-xs">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#71717A]" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--c-text3)]" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Filter keywords..."
-              className="w-full h-8 pl-7 pr-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50"
+              className="w-full h-8 pl-7 pr-3 text-sm bg-[var(--c-input)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50"
             />
           </div>
           <form
@@ -125,7 +125,7 @@ export default function Keywords() {
               value={newKeyword}
               onChange={e => setNewKeyword(e.target.value)}
               placeholder="New keyword..."
-              className="h-8 px-3 text-sm bg-[#111113] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50 w-40"
+              className="h-8 px-3 text-sm bg-[var(--c-input)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50 w-40"
             />
             <button
               type="submit"
@@ -140,16 +140,16 @@ export default function Keywords() {
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#27272A]">
+            <tr className="border-b border-[var(--c-border)]">
               {['Keyword', 'Enabled', 'Last Search', 'Jobs Found', 'Actions'].map(h => (
-                <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-[#71717A]">{h}</th>
+                <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-[var(--c-text3)]">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-[#71717A] text-sm">
+                <td colSpan={5} className="px-4 py-10 text-center text-[var(--c-text3)] text-sm">
                   {keywords.length === 0
                     ? 'No keywords yet. Add one above, or connect the backend.'
                     : 'No keywords match your search.'}
@@ -157,8 +157,8 @@ export default function Keywords() {
               </tr>
             ) : (
               filtered.map((kw, i) => (
-                <tr key={kw.id ?? i} className="border-b border-[#27272A] hover:bg-[#111113] transition-colors last:border-0">
-                  <td className="px-4 py-3 font-medium text-[#FAFAFA]">{kw.keyword}</td>
+                <tr key={kw.id ?? i} className="border-b border-[var(--c-border)] hover:bg-[var(--c-input)] transition-colors last:border-0">
+                  <td className="px-4 py-3 font-medium text-[var(--c-text)]">{kw.keyword}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => kw.id !== undefined && toggleMutation.mutate(kw)}
@@ -167,19 +167,19 @@ export default function Keywords() {
                     >
                       {kw.enabled
                         ? <ToggleRight size={20} className="text-green-400" />
-                        : <ToggleLeft size={20} className="text-[#71717A]" />
+                        : <ToggleLeft size={20} className="text-[var(--c-text3)]" />
                       }
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-xs text-[#71717A]">
+                  <td className="px-4 py-3 text-xs text-[var(--c-text3)]">
                     {kw.last_search ? new Date(kw.last_search).toLocaleDateString() : '—'}
                   </td>
-                  <td className="px-4 py-3 text-[#A1A1AA] tabular-nums">{kw.jobs_found ?? 0}</td>
+                  <td className="px-4 py-3 text-[var(--c-text2)] tabular-nums">{kw.jobs_found ?? 0}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => kw.id !== undefined && deleteMutation.mutate(kw.id)}
                       disabled={deleteMutation.isPending}
-                      className="text-[#71717A] hover:text-red-400 transition-colors p-1 rounded disabled:opacity-50"
+                      className="text-[var(--c-text3)] hover:text-red-400 transition-colors p-1 rounded disabled:opacity-50"
                     >
                       <Trash2 size={14} />
                     </button>

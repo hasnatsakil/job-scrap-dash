@@ -38,10 +38,10 @@ const TopNav: React.FC = () => {
   };
 
   return (
-    <header className="h-[72px] flex items-center justify-between px-6 border-b border-[#27272A] bg-[#09090B] shrink-0">
+    <header className="h-[72px] flex items-center justify-between px-6 border-b border-[var(--c-border)] bg-[var(--c-bg)] shrink-0">
       {/* Left: Title + Breadcrumb */}
       <div>
-        <div className="flex items-center gap-1.5 text-xs text-[#71717A] mb-0.5">
+        <div className="flex items-center gap-1.5 text-xs text-[var(--c-text3)] mb-0.5">
           <span>JobScrape AI</span>
           {routeInfo.crumbs.map((crumb, i) => (
             <React.Fragment key={i}>
@@ -50,7 +50,7 @@ const TopNav: React.FC = () => {
             </React.Fragment>
           ))}
         </div>
-        <h1 className="text-base font-semibold text-[#FAFAFA] leading-tight">{routeInfo.title}</h1>
+        <h1 className="text-base font-semibold text-[var(--c-text)] leading-tight">{routeInfo.title}</h1>
       </div>
 
       {/* Right: Actions */}
@@ -62,18 +62,18 @@ const TopNav: React.FC = () => {
               autoFocus
               onBlur={() => setSearchOpen(false)}
               placeholder="Search..."
-              className="h-8 pl-8 pr-3 text-sm bg-[#18181B] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder:text-[#71717A] outline-none focus:border-blue-500/50 w-48 transition-all"
+              className="h-8 pl-8 pr-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text)] placeholder:text-[var(--c-text3)] outline-none focus:border-blue-500/50 w-48 transition-all"
             />
           ) : (
             <button
               onClick={() => setSearchOpen(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-md text-[#71717A] hover:text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-md text-[var(--c-text3)] hover:text-[var(--c-text2)] hover:bg-[var(--c-card)] transition-colors"
             >
               <Search size={16} />
             </button>
           )}
           {searchOpen && (
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#71717A]" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--c-text3)]" />
           )}
         </div>
 
@@ -87,7 +87,7 @@ const TopNav: React.FC = () => {
         </button>
 
         {/* Notifications */}
-        <button className="h-8 w-8 flex items-center justify-center rounded-md text-[#71717A] hover:text-[#A1A1AA] hover:bg-[#18181B] transition-colors relative">
+        <button className="h-8 w-8 flex items-center justify-center rounded-md text-[var(--c-text3)] hover:text-[var(--c-text2)] hover:bg-[var(--c-card)] transition-colors relative">
           <Bell size={16} />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
         </button>
@@ -95,7 +95,7 @@ const TopNav: React.FC = () => {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="h-8 w-8 flex items-center justify-center rounded-md text-[#71717A] hover:text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-md text-[var(--c-text3)] hover:text-[var(--c-text2)] hover:bg-[var(--c-card)] transition-colors"
         >
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>

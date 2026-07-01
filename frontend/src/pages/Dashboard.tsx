@@ -22,18 +22,18 @@ const cardVariants = {
 };
 
 const SkeletonStat = () => (
-  <div className="bg-[#18181B] border border-[#27272A] rounded-lg p-4 animate-pulse">
-    <div className="h-3 w-20 bg-[#27272A] rounded mb-4" />
-    <div className="h-7 w-16 bg-[#27272A] rounded" />
+  <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-4 animate-pulse">
+    <div className="h-3 w-20 bg-[var(--c-pill)] rounded mb-4" />
+    <div className="h-7 w-16 bg-[var(--c-pill)] rounded" />
   </div>
 );
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#18181B] border border-[#27272A] rounded-lg p-3 text-xs shadow-xl">
-      <p className="text-[#A1A1AA] mb-1">{label}</p>
-      <p className="text-[#FAFAFA] font-semibold">{payload[0].value} jobs</p>
+    <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-3 text-xs shadow-xl">
+      <p className="text-[var(--c-text2)] mb-1">{label}</p>
+      <p className="text-[var(--c-text)] font-semibold">{payload[0].value} jobs</p>
     </div>
   );
 };
@@ -183,11 +183,11 @@ export default function Dashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Jobs Over Time */}
-        <div className="xl:col-span-2 bg-[#18181B] border border-[#27272A] rounded-lg p-5">
+        <div className="xl:col-span-2 bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-sm font-semibold text-[#FAFAFA]">Jobs Over Time</h2>
-              <p className="text-xs text-[#71717A] mt-0.5">Last 7 days</p>
+              <h2 className="text-sm font-semibold text-[var(--c-text)]">Jobs Over Time</h2>
+              <p className="text-xs text-[var(--c-text3)] mt-0.5">Last 7 days</p>
             </div>
           </div>
           <div className="h-52">
@@ -203,9 +203,9 @@ export default function Dashboard() {
         </div>
 
         {/* Jobs by Source */}
-        <div className="bg-[#18181B] border border-[#27272A] rounded-lg p-5">
-          <h2 className="text-sm font-semibold text-[#FAFAFA] mb-1">Jobs by Source</h2>
-          <p className="text-xs text-[#71717A] mb-4">Distribution</p>
+        <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-5">
+          <h2 className="text-sm font-semibold text-[var(--c-text)] mb-1">Jobs by Source</h2>
+          <p className="text-xs text-[var(--c-text3)] mb-4">Distribution</p>
           {sourceData.length > 0 ? (
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
@@ -215,13 +215,13 @@ export default function Dashboard() {
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend formatter={(v) => <span className="text-xs text-[#A1A1AA]">{v}</span>} />
+                  <Legend formatter={(v) => <span className="text-xs text-[var(--c-text2)]">{v}</span>} />
                   <Tooltip contentStyle={{ background: '#18181B', border: '1px solid #27272A', borderRadius: '8px', fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-52 flex items-center justify-center text-[#71717A] text-sm">
+            <div className="h-52 flex items-center justify-center text-[var(--c-text3)] text-sm">
               No source data yet
             </div>
           )}
@@ -231,19 +231,19 @@ export default function Dashboard() {
       {/* Latest Jobs + AI Usage Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Latest Jobs Table */}
-        <div className="xl:col-span-2 bg-[#18181B] border border-[#27272A] rounded-lg overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#27272A]">
-            <h2 className="text-sm font-semibold text-[#FAFAFA]">Latest Jobs</h2>
+        <div className="xl:col-span-2 bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--c-border)]">
+            <h2 className="text-sm font-semibold text-[var(--c-text)]">Latest Jobs</h2>
           </div>
           {recentJobs.length === 0 ? (
-            <div className="p-8 text-center text-[#71717A] text-sm">No jobs found. Run the scraper to get started.</div>
+            <div className="p-8 text-center text-[var(--c-text3)] text-sm">No jobs found. Run the scraper to get started.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#27272A]">
+                  <tr className="border-b border-[var(--c-border)]">
                     {['Job', 'Company', 'Source', 'AI Status'].map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-[#71717A]">{h}</th>
+                      <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-[var(--c-text3)]">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -252,15 +252,15 @@ export default function Dashboard() {
                     <tr
                       key={i}
                       onClick={() => openJob(job)}
-                      className="border-b border-[#27272A] hover:bg-[#111113] cursor-pointer transition-colors last:border-0"
+                      className="border-b border-[var(--c-border)] hover:bg-[var(--c-input)] cursor-pointer transition-colors last:border-0"
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-[#FAFAFA] truncate max-w-[180px]">{job['title']}</div>
-                        <div className="text-xs text-[#71717A]">{job['location']}</div>
+                        <div className="font-medium text-[var(--c-text)] truncate max-w-[180px]">{job['title']}</div>
+                        <div className="text-xs text-[var(--c-text3)]">{job['location']}</div>
                       </td>
-                      <td className="px-4 py-3 text-[#A1A1AA] truncate max-w-[120px]">{job['company']}</td>
+                      <td className="px-4 py-3 text-[var(--c-text2)] truncate max-w-[120px]">{job['company']}</td>
                       <td className="px-4 py-3">
-                        <span className="text-xs bg-[#27272A] text-[#A1A1AA] px-2 py-0.5 rounded-full">{job['source']}</span>
+                        <span className="text-xs bg-[var(--c-pill)] text-[var(--c-text2)] px-2 py-0.5 rounded-full">{job['source']}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs border px-2 py-0.5 rounded-full font-medium ${getDecisionStyle(job['ai_status'] || '')}`}>
@@ -279,24 +279,24 @@ export default function Dashboard() {
         {/* Right Column: AI Usage + Health */}
         <div className="space-y-4">
           {/* AI Usage Card */}
-          <div className="bg-[#18181B] border border-[#27272A] rounded-lg p-5">
+          <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
               <Brain size={15} className="text-purple-400" />
-              <h2 className="text-sm font-semibold text-[#FAFAFA]">AI Usage</h2>
+              <h2 className="text-sm font-semibold text-[var(--c-text)]">AI Usage</h2>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between text-xs">
-                <span className="text-[#71717A]">Daily Budget</span>
-                <span className="text-[#FAFAFA] font-medium tabular-nums">{budgetUsed} / {budgetTotal}</span>
+                <span className="text-[var(--c-text3)]">Daily Budget</span>
+                <span className="text-[var(--c-text)] font-medium tabular-nums">{budgetUsed} / {budgetTotal}</span>
               </div>
-              <div className="h-1.5 bg-[#27272A] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[var(--c-pill)] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${budgetPct > 85 ? 'bg-red-500' : budgetPct > 60 ? 'bg-yellow-500' : 'bg-blue-500'}`}
                   style={{ width: `${budgetPct}%` }}
                 />
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[#71717A]">Remaining</span>
+                <span className="text-[var(--c-text3)]">Remaining</span>
                 <span className={`font-medium tabular-nums ${budgetPct > 85 ? 'text-red-400' : 'text-green-400'}`}>
                   {budgetTotal - budgetUsed} left
                 </span>
@@ -311,21 +311,21 @@ export default function Dashboard() {
           </div>
 
           {/* Sources Summary Widget */}
-          <div className="bg-[#18181B] border border-[#27272A] rounded-lg p-5">
+          <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
               <Globe size={15} className="text-blue-400" />
-              <h2 className="text-sm font-semibold text-[#FAFAFA]">Sources Summary</h2>
+              <h2 className="text-sm font-semibold text-[var(--c-text)]">Sources Summary</h2>
             </div>
             <div className="space-y-2">
               {health?.enabled_sources?.length > 0 ? (
                 health.enabled_sources.map((source: string) => (
                   <div key={source} className="flex justify-between items-center text-xs">
-                    <span className="text-[#A1A1AA] capitalize">{source}</span>
+                    <span className="text-[var(--c-text2)] capitalize">{source}</span>
                     <span className="text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">Enabled</span>
                   </div>
                 ))
               ) : (
-                <div className="text-xs text-[#71717A]">No sources enabled.</div>
+                <div className="text-xs text-[var(--c-text3)]">No sources enabled.</div>
               )}
             </div>
           </div>
