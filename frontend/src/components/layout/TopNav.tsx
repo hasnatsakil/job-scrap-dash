@@ -23,11 +23,18 @@ const TopNav: React.FC = () => {
 
   const routeInfo = routeTitles[location.pathname] ?? { title: 'Dashboard', crumbs: [] };
 
-  const repoUrl = import.meta.env.VITE_GITHUB_REPO || 'https://github.com/hasnatsakil/job-scrap-dash';
-
-  const handleRunScraper = () => {
-    window.open(`${repoUrl}/actions/workflows/scrape.yml`, '_blank');
-    toast('info', 'Trigger scraper on GitHub', 'Go to Actions → scrape.yml → "Run workflow" to trigger a manual scrape.');
+  const handleRunScraper = async () => {
+    try {
+      const resp = await fetch('/api/dispatch', { method: 'POST' });
+      if (resp.ok) {
+        toast('success', 'Scraper triggered', 'The scraper workflow has been dispatched on GitHub Actions.');
+      } else {
+        const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
+        toast('error', 'Failed to trigger', err.error || 'Unknown error');
+      }
+    } catch {
+      toast('error', 'Network error', 'Could not reach the dispatch endpoint.');
+    }
   };
 
   return (
