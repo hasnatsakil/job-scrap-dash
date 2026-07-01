@@ -1,8 +1,6 @@
 # AI-Powered Job Scraping Dashboard
 
-Automated job scraping dashboard that collects jobs from LinkedIn, Greenhouse,
-Lever, and Ashby, filters them using AI, and displays results in a modern
-dashboard. Built with React + Supabase + GitHub Actions.
+An automated job scraping dashboard that intelligently collects job postings from Adzuna, Jooble, The Muse, LinkedIn, and Glassdoor. It features an AI-driven Query Expansion service to maximize job coverage, filters the jobs using AI for quality and relevance, and displays results in a modern dashboard. Built with React + Supabase + GitHub Actions/FastAPI.
 
 ## Architecture
 
@@ -13,101 +11,96 @@ dashboard. Built with React + Supabase + GitHub Actions.
 └──────────────┘                        └──────┬───────┘
                                                 ▲ writes
                                           ┌─────┴───────┐
-                                          │GitHub Actions│
-                                          │  (Scraper)   │
+                                          │  Scraper    │
+                                          │ (Backend)   │
                                           └──────────────┘
 ```
 
 - **Frontend** — React + Vite + Tailwind CSS + shadcn/ui, deployed on Vercel
 - **Database** — Supabase (PostgreSQL), frontend talks directly via the JS SDK
-- **Scraper** — Python + Playwright, runs daily in GitHub Actions, writes to Supabase
-- **AI Filtering** — OpenRouter (free model) evaluates job descriptions
+- **Backend / Scraper** — Python + FastAPI + Playwright. Manages robust scheduling, smart AI Query Expansion caching, and a cascading fallback chain across 5 job API providers.
+- **AI Filtering & Expansion** — OpenRouter evaluates job descriptions for relevance and dynamically expands search keywords (e.g. `Backend Dev` -> `API Engineer`) to surface hidden jobs.
 
 ## Features
 
-- Automated scraping from LinkedIn, Greenhouse, Lever, Ashby
-- AI-powered job filtering with customizable prompt
-- Keyword management (CRUD)
-- Job review dashboard with search, sort, filter, CSV export
-- Daily scheduled scraping via GitHub Actions (configurable in YAML)
-- Manual scraper trigger from GitHub Actions dashboard
-- System health monitoring
+- **Cascading Fallback Chain**: Scrapes Adzuna, Jooble, The Muse, LinkedIn, and Glassdoor in sequence, stopping early to optimize API costs if quota is met.
+- **AI Query Expansion**: Automatically generates industry-standard synonyms for your keywords to expand search reach, caching them in the database to save tokens.
+- **Smart Data Normalization**: Cleans out HTML, deduplicates jobs across multiple API providers, and standardizes employment types/locations.
+- **Automated AI Filtering**: Evaluates raw job descriptions to score them out of 100, assigns a category, and auto-trashes irrelevant results before they hit your database.
+- **Full Test Suite**: Fully automated `pytest` suite simulating all APIs and databases for rapid, confident iteration.
 
 ## Prerequisites
 
-1. **Supabase Project** — URL and anon key for the frontend, service role key for the scraper
-2. **OpenRouter API Key** — Free tier works (`gpt-oss-20b:free`)
-3. **GitHub Account** — For the scraper runner
-4. **Vercel Account** — For frontend hosting
+1. **Supabase Project** — URL and keys for frontend (anon) and backend (service role)
+2. **OpenRouter API Key** — Required for AI Filtering & Query Expansion
+3. **Provider APIs (Optional but recommended)** — Adzuna App ID/Key, Jooble API Key, The Muse API Key.
 
 ## Setup
 
 ### 1. Supabase Tables
 
-The following tables need to exist in your Supabase project:
+The following tables are utilized in your Supabase project:
 
-- **`jobs`** — scraped job listings (already exists if you migrated from the old setup)
-- **`logs`** — scraping run logs (already exists)
-- **`keywords`** — search keywords with enabled/disabled state (already exists)
-- **`settings`** — app configuration (single row)
-- **`scraper_runs`** — tracks scraper health and status
+- **`jobs`** — Scraped job listings
+- **`logs`** — Scraping run logs
+- **`keywords`** — Search keywords with enabled/disabled state
+- **`settings`** — App configuration
+- **`scraper_runs`** — Tracks scraper health and status
+- **`search_query_expansions`** — AI generated keywords cache
 
-Run the SQL migration in Supabase SQL Editor to create missing tables:
+Run the SQL migration in the Supabase SQL Editor to create missing tables:
+```sql
+-- See backend/scripts/migration_create_tables.sql
 ```
-backend/scripts/migration_create_tables.sql
+
+### 2. Backend / Scraper (Local or Server Deployment)
+
+The Python backend manages the complex scraper execution. 
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
 ```
 
-### 2. GitHub Secrets
+Copy `.env.example` to `.env` and fill in your keys:
+```env
+SUPABASE_URL=your_url
+SUPABASE_KEY=your_service_role_key
+OPENROUTER_API_KEY=your_key
+ADZUNA_APP_ID=your_id
+ADZUNA_APP_KEY=your_key
+JOOBLE_API_KEY=your_key
+MUSE_API_KEY=your_key
+PORT=8000
+```
 
-These are required by the GitHub Actions scraper workflow. Add them in:
-**GitHub repo → Settings → Secrets and variables → Actions**
+Start the application:
+```bash
+python -m backend.app
+```
 
-| Secret | Description |
-|--------|-------------|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_KEY` | Supabase service role key (not anon key) |
-| `OPENROUTER_API_KEY` | Your OpenRouter API key |
+**Running Tests:**
+We use `pytest` for rigorous coverage of deduplication, data normalizers, and orchestrator fallbacks.
+```bash
+PYTHONPATH=. pytest tests/ -v
+```
 
 ### 3. Frontend Deployment (Vercel)
 
-1. Push the repo to GitHub
-2. In Vercel: Add New Project → Import your GitHub repo
-3. Vercel auto-detects the Vite config from `vercel.json`
+1. Push the repo to GitHub.
+2. In Vercel: Add New Project → Import your GitHub repo.
+3. Vercel auto-detects the Vite config from `vercel.json`.
 4. Add these **Environment Variables** in Vercel project Settings:
 
 | Variable | Description |
 |----------|-------------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/publishable key |
-| `VITE_GITHUB_REPO` | `https://github.com/your-username/your-repo` |
 
-5. Deploy — the frontend talks directly to Supabase, no backend server needed
-
-### 4. Local Development
-
-```bash
-# Frontend
-cd frontend
-cp .env.example .env
-# Fill in your Supabase URL and anon key
-npm install
-npm run dev
-
-# Scraper (runs locally)
-cd backend
-pip install -r requirements.txt
-playwright install chromium
-python -c "import asyncio; from backend.services.orchestrator import orchestrator; asyncio.run(orchestrator.run_all())"
-```
-
-## Running the Scraper
-
-### Daily (automatic)
-The scraper runs daily at 8 AM via the GitHub Actions workflow:
-`.github/workflows/scrape.yml`
-
-### Manual
-Go to GitHub → Actions → **Daily Job Scraper** → **Run workflow**
+5. Deploy — the frontend talks directly to Supabase.
 
 ## Project Structure
 
@@ -117,24 +110,23 @@ Go to GitHub → Actions → **Daily Job Scraper** → **Run workflow**
 │   │   ├── pages/          # Dashboard, Jobs, Keywords, Logs, Health, Settings
 │   │   ├── components/     # Reusable UI components
 │   │   ├── lib/            # Supabase client, utilities
-│   │   └── contexts/       # Theme, Toast providers
+│   │   └── contexts/       # Theme providers
 │   └── .env.example        # Environment variable template
 ├── backend/
-│   ├── scrapers/           # LinkedIn, Lever, Greenhouse, Ashby scrapers
-│   ├── services/           # Orchestrator, AI, DB, extractors, normalizers
-│   ├── routers/            # API endpoints (legacy)
+│   ├── apis/               # Adzuna, Jooble, Muse, LinkedIn, Glassdoor scraper modules
+│   ├── services/           # Orchestrator, AI Query Expansion, AI Manager, Normalizer, Deduplicator
+│   ├── tests/              # Pytest automated test suite
 │   ├── scripts/            # Migration SQL, setup utilities
 │   └── requirements.txt
-├── .github/workflows/      # GitHub Actions scraper workflow
+├── .github/workflows/      # GitHub Actions scraper workflow (Optional)
 ├── vercel.json             # Vercel deployment config (frontend only)
 └── README.md
 ```
 
 ## Tech Stack
 
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend:** Python, FastAPI, Pytest, Playwright
 - **Database:** Supabase (PostgreSQL)
-- **State:** TanStack React Query
-- **Scraping:** Playwright, BeautifulSoup
-- **AI:** OpenRouter API (gpt-oss-20b:free)
-- **CI/CD:** GitHub Actions (scraper), Vercel (frontend)
+- **AI:** OpenRouter API
+- **Deployment:** Vercel (frontend), GitHub Actions / Local (backend)

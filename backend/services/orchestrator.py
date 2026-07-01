@@ -3,30 +3,29 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any
 
-from playwright.async_api import async_playwright
 from backend.config import config_manager
 from backend.services.health import health_monitor
 from backend.services.database import db_client
 from backend.services.deduplicator import Deduplicator
 from backend.services.ai_manager import ai_manager
-from backend.services.captcha_detector import CaptchaDetectedException
-from backend.services.job_hydrator import job_hydrator
-from backend.services.content_extractor import content_extractor
-from backend.services.content_cleaner import content_cleaner
 from backend.services.content_validator import content_validator
 from backend.services.normalizer import DataNormalizer
+from backend.services.query_expansion import query_expansion
 
-# Import scrapers
-from backend.scrapers.linkedin import LinkedInScraper
-from backend.scrapers.google import LeverScraper, GreenhouseScraper, AshbyScraper
+# Import API Clients
+from backend.apis.adzuna import AdzunaAPI
+from backend.apis.jooble import JoobleAPI
+from backend.apis.muse import MuseAPI
+from backend.apis.google_scraper import LinkedInScraper, GlassdoorScraper
 
 logger = logging.getLogger(__name__)
 
-SCRAPER_REGISTRY = {
+API_REGISTRY = {
+    "adzuna": AdzunaAPI,
+    "jooble": JoobleAPI,
+    "muse": MuseAPI,
     "linkedin": LinkedInScraper,
-    "lever": LeverScraper,
-    "greenhouse": GreenhouseScraper,
-    "ashby": AshbyScraper
+    "glassdoor": GlassdoorScraper
 }
 
 class Orchestrator:
@@ -42,17 +41,22 @@ class Orchestrator:
         health_monitor.record_attempt()
         health_monitor.scheduler_status = "Running"
         health_monitor.captcha_blocked_sources = []
-        logger.info("Starting orchestrated scraper run.")
+        logger.info("Starting orchestrated API fetch run.")
 
         try:
             config_manager.reload_keywords()
-            config_manager.reload_sources()
+            config_manager.reload_settings()
             config = config_manager.get_config()
-            if not config.enabled_sources or not config.search_keywords:
-                logger.warning("No enabled sources or keywords found. Aborting.")
+            if not config.search_keywords:
+                logger.warning("No search keywords found. Aborting.")
                 return
 
-            # Initialize deduplicator with existing jobs
+            fallback_chain = ["adzuna", "jooble", "muse"]
+            # Append web scrapers only if they are explicitly selected in settings
+            for src in ["linkedin", "glassdoor"]:
+                if config.enabled_sources and src in config.enabled_sources:
+                    fallback_chain.append(src)
+
             existing_jobs = db_client.get_all("jobs")
             dedup = Deduplicator(existing_jobs)
             
@@ -60,121 +64,102 @@ class Orchestrator:
             total_saved = 0
             start_time = datetime.now()
             
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
-                
-                # We limit concurrency here loosely by iterating sources and keywords. 
-                # A more advanced version would use asyncio.gather with a semaphore.
-                for source_name in config.enabled_sources:
-                    if source_name not in SCRAPER_REGISTRY:
-                        logger.warning(f"No scraper registered for {source_name}")
-                        continue
-                        
-                    scraper_cls = SCRAPER_REGISTRY[source_name]
+            for location in config.search_locations:
+                for keyword in config.search_keywords:
+                    expanded_keywords = await query_expansion.expand(keyword)
+                    keyword_saved_total = 0
                     
-                    for keyword in config.search_keywords:
-                        keyword_collected = 0
-                        keyword_saved = 0
-                        logger.info(f"Scraping {source_name} for '{keyword}'")
-                        scraper = scraper_cls()
-                        context = await browser.new_context()
+                    for source_name in fallback_chain:
+                        if source_name not in API_REGISTRY:
+                            logger.warning(f"No API client registered for {source_name}")
+                            continue
+                            
+                        api_cls = API_REGISTRY[source_name]
+                        api_client = api_cls()
                         
-                        try:
-                            jobs = await scraper.scrape(context, keyword)
-                            keyword_collected = len(jobs)
-                            unique_jobs = [job for job in jobs if not dedup.is_duplicate(job)]
+                        source_saved_total = 0
+                        
+                        for exp_kw in expanded_keywords:
+                            logger.info(f"Fetching {source_name} for '{exp_kw}' in '{location}' (Original: {keyword})")
                             
-                            if unique_jobs:
-                                # Add keyword to jobs so the AI has context for evaluation
-                                for j in unique_jobs:
-                                    j["keyword"] = keyword
+                            try:
+                                jobs = await api_client.fetch_jobs(exp_kw, location, limit=config.max_jobs_per_keyword)
+                                keyword_collected = len(jobs)
+                                total_collected += keyword_collected
+                                
+                                unique_jobs = [job for job in jobs if not dedup.is_duplicate(job)]
+                                
+                                if unique_jobs:
+                                    for j in unique_jobs:
+                                        j["keyword"] = keyword # Map back to original keyword
 
-                                # Hydrate the jobs (fetch raw html)
-                                hydrated_jobs = await job_hydrator.hydrate_batch(context, unique_jobs)
-                                
-                                # Extract, Normalize, Clean, and Validate
-                                extracted_jobs = [content_extractor.extract(job) for job in hydrated_jobs]
-                                normalized_jobs = [DataNormalizer.normalize_job(job) for job in extracted_jobs]
-                                cleaned_jobs = [content_cleaner.clean(job) for job in normalized_jobs]
-                                validated_jobs = content_validator.validate_batch(cleaned_jobs)
-                                
-                                # Separate valid jobs for AI vs invalid jobs that skip AI
-                                ai_batch = [j for j in validated_jobs if j.get("AI Decision") != "Reject"]
-                                invalid_batch = [j for j in validated_jobs if j.get("AI Decision") == "Reject"]
-                                
-                                # Process in batches of 5 concurrently for AI evaluation
-                                evaluated_batch = []
-                                BATCH_SIZE = 5
-                                for i in range(0, len(ai_batch), BATCH_SIZE):
-                                    batch = ai_batch[i:i+BATCH_SIZE]
-                                    tasks = [ai_manager.evaluate_job(j) for j in batch]
-                                    evaluated_batch.extend(await asyncio.gather(*tasks, return_exceptions=False))
+                                    normalized_jobs = [DataNormalizer.normalize_job(job) for job in unique_jobs]
+                                    validated_jobs = content_validator.validate_batch(normalized_jobs)
                                     
-                                # Combine back with invalid jobs
-                                final_batch = evaluated_batch + invalid_batch
-                                
-                                rows = self._format_jobs_for_db(final_batch, keyword)
-                                db_client.insert("jobs", rows)
-                                keyword_saved += len(final_batch)
-                                logger.info(f"Saved {len(final_batch)} new jobs to database from {source_name}.")
+                                    ai_batch = [j for j in validated_jobs if j.get("AI Decision") != "Reject"]
+                                    invalid_batch = [j for j in validated_jobs if j.get("AI Decision") == "Reject"]
                                     
-                                # Add back to dedup to avoid duplicates across sources in the same run
-                                for evaluated in final_batch:
-                                    url = evaluated.get("job_url")
-                                    if url:
-                                        dedup.existing_urls.add(url.strip())
-                                    company = evaluated.get("company", "").strip().lower()
-                                    title = evaluated.get("title", "").strip().lower()
-                                    if company and title:
-                                        dedup.existing_signatures.add(f"{company}::{title}")
+                                    evaluated_batch = []
+                                    BATCH_SIZE = 5
+                                    for i in range(0, len(ai_batch), BATCH_SIZE):
+                                        batch = ai_batch[i:i+BATCH_SIZE]
+                                        tasks = [ai_manager.evaluate_job(j) for j in batch]
+                                        evaluated_batch.extend(await asyncio.gather(*tasks, return_exceptions=False))
+                                        
+                                    final_batch = [j for j in (evaluated_batch + invalid_batch) if j.get("AI Decision") != "Pending AI Review"]
+                                    
+                                    rows = self._format_jobs_for_db(final_batch, f"{keyword} ({location})")
+                                    if rows:
+                                        db_client.insert("jobs", rows)
+                                        source_saved_total += len(final_batch)
+                                        keyword_saved_total += len(final_batch)
+                                        total_saved += len(final_batch)
+                                        logger.info(f"Saved {len(final_batch)} new jobs to database from {source_name} for '{exp_kw}'.")
+                                        
+                                    for evaluated in final_batch:
+                                        url = evaluated.get("job_url")
+                                        if url:
+                                            dedup.existing_urls.add(url.strip())
+                                        company = evaluated.get("company", "").strip().lower()
+                                        title = evaluated.get("title", "").strip().lower()
+                                        if company and title:
+                                            dedup.existing_signatures.add(f"{company}::{title}")
 
-                            total_collected += keyword_collected
-                            total_saved += keyword_saved
-                        except CaptchaDetectedException as e:
-                            logger.warning(f"CAPTCHA detected for {source_name}. Skipping remaining keywords for this source.")
-                            health_monitor.record_captcha(source_name)
+                                # Log to database for this source attempt on this expanded keyword
+                                db_client.insert("logs", [{
+                                    "time": datetime.now().isoformat(),
+                                    "source": source_name,
+                                    "keyword": f"{exp_kw} ({location})",
+                                    "jobs_found": keyword_collected,
+                                    "message": f"Fetched {keyword_collected} jobs, saved {source_saved_total} new from {source_name}",
+                                    "status": "success" if source_saved_total > 0 else "info"
+                                }])
+
+                                # If we hit the max jobs for this original keyword across expansions, stop searching expanded keywords
+                                if keyword_saved_total >= config.max_jobs_per_keyword:
+                                    logger.info(f"Reached max jobs ({config.max_jobs_per_keyword}) for '{keyword}'. Skipping remaining expanded keywords.")
+                                    break
+                                    
+                            except Exception as e:
+                                logger.error(f"Error fetching from {source_name}: {e}")
+                                
+                            await asyncio.sleep(config.delay_between_requests)
                             
-                            log_row = {
-                                "time": datetime.now().isoformat(),
-                                "source": source_name,
-                                "keyword": keyword,
-                                "jobs_found": 0,
-                                "message": f"CAPTCHA detected for {source_name} while scraping '{keyword}'. Skipping remaining keywords.",
-                                "status": "warning"
-                            }
-                            db_client.insert("logs", [log_row])
-
-                            await context.close()
+                        # Check if we got enough good jobs from this source to stop the fallback chain
+                        if keyword_saved_total > 0:
+                            logger.info(f"Successfully saved {keyword_saved_total} jobs from {source_name} for '{keyword}'. Skipping fallbacks.")
                             break
-                        except Exception as e:
-                            logger.error(f"Failed to scrape {source_name} for '{keyword}': {e}")
-                        finally:
-                            if not context.is_closed():
-                                await context.close()
-
-                        # Log per-keyword result
-                        db_client.insert("logs", [{
-                            "time": datetime.now().isoformat(),
-                            "source": source_name,
-                            "keyword": keyword,
-                            "jobs_found": keyword_collected,
-                            "message": f"Scraped {keyword_collected} jobs, saved {keyword_saved} new from {source_name}",
-                            "status": "success" if keyword_saved > 0 else "info"
-                        }])
-                            
-                        await asyncio.sleep(config.delay_between_requests)
-
-                await browser.close()
+            
+            logger.info(f"Scraping run completed in {datetime.now() - start_time}. Total collected: {total_collected}, Total saved: {total_saved}")
             
             duration = str(datetime.now() - start_time)
             
-            # Save a log entry
             log_row = {
                 "time": datetime.now().isoformat(),
                 "source": "All",
                 "keyword": "All",
                 "jobs_found": total_collected,
-                "message": f"Scraped {total_collected} jobs, saved {total_saved} new in {duration}",
+                "message": f"Fetched {total_collected} jobs, saved {total_saved} new in {duration}",
                 "status": "success"
             }
             db_client.insert("logs", [log_row])
@@ -188,7 +173,7 @@ class Orchestrator:
         finally:
             self.is_running = False
             health_monitor.scheduler_status = "Not Running"
-            logger.info("Orchestrated scraper run completed.")
+            logger.info("Orchestrated API fetch run completed.")
 
     def _format_jobs_for_db(self, jobs: List[Dict[str, Any]], keyword: str = "") -> List[Dict[str, Any]]:
         rows = []
@@ -207,7 +192,14 @@ class Orchestrator:
                 "ai_status": j.get("AI Decision", "Pending"),
                 "keyword": keyword,
                 "scraped_at": date_str,
+                "summary": j.get("summary", ""),
+                "skills": j.get("skills", []),
+                "category": j.get("category", "Unknown"),
+                "employment_type": j.get("employment_type", ""),
+                "salary": j.get("salary", ""),
+                "remote": j.get("remote", False)
             })
         return rows
 
 orchestrator = Orchestrator()
+

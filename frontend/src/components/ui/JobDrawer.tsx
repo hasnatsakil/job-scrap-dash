@@ -1,7 +1,12 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Copy, Star, RefreshCw, Building2, MapPin, Clock, Tag, Brain, DollarSign } from 'lucide-react';
+import { X, ExternalLink, Copy, Star, RefreshCw, Building2, MapPin, Clock, Tag, Brain, DollarSign, Search } from 'lucide-react';
 import { parseDescription, DescBlock } from '@/lib/parseDescription';
+
+/** Returns true if the string contains HTML tags — used to switch render paths. */
+function isHtmlDescription(text: string): boolean {
+  return /<[a-z][\s\S]*?>/i.test(text);
+}
 
 interface Job {
   title?: string;
@@ -15,6 +20,12 @@ interface Job {
   ai_score?: number | string;
   ai_reason?: string;
   description?: string;
+  summary?: string;
+  category?: string;
+  employment_type?: string;
+  salary?: string;
+  remote?: boolean;
+  skills?: string[];
   [key: string]: any;
 }
 
@@ -47,9 +58,13 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
   const aiReason = job?.['ai_reason'];
 
   const descBlocks: DescBlock[] = useMemo(
-    () => job?.description ? parseDescription(job.description) : [],
+    () => (!job?.description || isHtmlDescription(job.description))
+      ? []
+      : parseDescription(job.description),
     [job?.description]
   );
+
+  const isHtml = !!job?.description && isHtmlDescription(job.description);
 
   const decisionBg =
     aiDecision === 'Keep' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
@@ -104,9 +119,12 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
                 <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-4">Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <DrawerRow icon={<MapPin size={14} />} label="Location" value={job['location']} />
-                  <DrawerRow icon={<Tag size={14} />} label="Work Type" value={job['work_type']} />
+                  <DrawerRow icon={<Tag size={14} />} label="Work Type" value={job['work_type'] || job['employment_type']} />
                   <DrawerRow icon={<Clock size={14} />} label="Posted" value={job['scraped_at']?.split('T')[0]} />
                   <DrawerRow icon={<ExternalLink size={14} />} label="Source" value={job['source']} />
+                  <DrawerRow icon={<Building2 size={14} />} label="Category" value={job['category']} />
+                  <DrawerRow icon={<DollarSign size={14} />} label="Salary" value={job['salary']} />
+                  <DrawerRow icon={<MapPin size={14} />} label="Remote" value={job['remote'] ? 'Yes' : (job['remote'] === false ? 'No' : '')} />
                 </div>
               </div>
 
@@ -129,37 +147,45 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
                 </div>
               </div>
 
-              {/* Description */}
-              {descBlocks.length > 0 && (
+              {/* AI Summary */}
+              {job?.summary && (
                 <div>
-                  <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-3">Description</h3>
-                  <div className="space-y-3">
-                    {descBlocks.map((block, i) => {
-                      if (block.type === 'field') {
-                        const icon = fieldIcon(block.label);
-                        return (
-                          <div key={i} className="flex items-center gap-2.5 text-sm">
-                            <span className="text-[var(--c-text3)] shrink-0">{icon}</span>
-                            <span className="text-[var(--c-text2)]">{block.label}:</span>
-                            <span className="text-[var(--c-text)] font-medium">{block.value}</span>
-                          </div>
-                        );
-                      }
-                      if (block.type === 'heading') {
-                        return (
-                          <div key={i} className="pt-2">
-                            <h4 className="text-sm font-semibold text-[var(--c-text)]">{block.text}</h4>
-                            <div className="mt-1 h-px bg-[var(--c-pill)]" />
-                          </div>
-                        );
-                      }
-                      return (
-                        <p key={i} className="text-sm text-[var(--c-text2)] leading-relaxed whitespace-pre-wrap">{block.text}</p>
-                      );
-                    })}
+                  <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <Brain size={14} className="text-purple-400" /> AI Summary
+                  </h3>
+                  <div className="text-sm text-[var(--c-text2)] leading-relaxed bg-purple-500/5 border border-purple-500/10 p-4 rounded-lg">
+                    {job.summary.includes('- ') || job.summary.includes('* ') ? (
+                      <ul className="list-disc pl-5 space-y-1.5 marker:text-purple-400">
+                        {job.summary
+                          .split('\n')
+                          .filter(line => line.trim().length > 0)
+                          .map((line, i) => (
+                            <li key={i}>{line.replace(/^[-*]\s*/, '')}</li>
+                          ))}
+                      </ul>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{job.summary}</div>
+                    )}
                   </div>
                 </div>
               )}
+
+              {/* Skills */}
+              {Array.isArray(job?.skills) && job.skills.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <Tag size={14} /> Key Skills
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {job.skills.map((skill, idx) => (
+                      <span key={idx} className="px-2.5 py-1 bg-[var(--c-pill)] text-[var(--c-text2)] text-xs rounded-full border border-[var(--c-border)]">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Footer actions */}
@@ -175,6 +201,7 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
                   Open Job
                 </a>
               )}
+
               {job['job_url'] && (
                 <button
                   onClick={() => navigator.clipboard.writeText(job['job_url'] ?? '')}
@@ -188,10 +215,7 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
                 <Star size={14} />
                 Favorite
               </button>
-              <button className="flex items-center gap-2 h-9 px-3 rounded-md border border-[var(--c-border)] text-[var(--c-text2)] hover:text-[var(--c-text)] hover:border-[var(--c-hover)] text-sm transition-colors ml-auto">
-                <RefreshCw size={14} />
-                Refresh AI
-              </button>
+
             </div>
           </motion.div>
         </>

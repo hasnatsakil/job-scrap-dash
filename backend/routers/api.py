@@ -34,6 +34,7 @@ async def update_settings(new_settings: AppConfigCache):
 from backend.services.orchestrator import orchestrator
 
 @router.post("/run")
+@router.post("/dispatch")
 async def run_scraper(background_tasks: BackgroundTasks):
     background_tasks.add_task(orchestrator.run_all)
     return {"status": "started", "message": "Scraping job started in background"}
@@ -41,7 +42,7 @@ async def run_scraper(background_tasks: BackgroundTasks):
 @router.get("/sources")
 async def get_sources():
     config = config_manager.get_config()
-    all_sources = ["linkedin", "greenhouse", "lever", "ashby", "indeed", "glassdoor"]
+    all_sources = ["adzuna", "jooble", "muse"]
     sources = []
     for i, s in enumerate(all_sources):
         sources.append({

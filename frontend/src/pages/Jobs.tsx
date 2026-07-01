@@ -25,6 +25,7 @@ export default function Jobs() {
   const [sourceFilter, setSourceFilter] = useState('');
   const [decisionFilter, setDecisionFilter] = useState('');
   const [workTypeFilter, setWorkTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>(null);
   const [page, setPage] = useState(1);
@@ -46,7 +47,7 @@ export default function Jobs() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('jobs')
-        .select('id,title,company,location,source,work_type,ai_status,ai_score,scraped_at,job_url,keyword')
+        .select('id,title,company,location,source,work_type,ai_status,ai_score,scraped_at,job_url,keyword,category,employment_type,salary,remote,skills')
         .order('scraped_at', { ascending: false })
         .limit(500);
       if (error) console.error('Jobs fetch error:', error);
@@ -58,9 +59,9 @@ export default function Jobs() {
   const jobs: any[] = Array.isArray(rawData) ? rawData : [];
 
   const handleRowClick = async (job: any) => {
-    if (!job.description) {
-      const { data } = await supabase.from('jobs').select('description').eq('id', job.id).single();
-      setSelectedJob(data ? { ...job, description: data.description } : job);
+    if (!job.description || !job.summary) {
+      const { data } = await supabase.from('jobs').select('description,summary').eq('id', job.id).single();
+      setSelectedJob(data ? { ...job, description: data.description, summary: data.summary } : job);
     } else {
       setSelectedJob(job);
     }
@@ -68,6 +69,7 @@ export default function Jobs() {
 
   const sources = useMemo(() => [...new Set(jobs.map((j: any) => j['source']).filter(Boolean))], [jobs]);
   const workTypes = useMemo(() => [...new Set(jobs.map((j: any) => j['work_type']).filter(Boolean))], [jobs]);
+  const categories = useMemo(() => [...new Set(jobs.map((j: any) => j['category']).filter(Boolean))], [jobs]);
 
   const filtered = useMemo(() => {
     let result = jobs.filter((job: any) => {
@@ -75,11 +77,13 @@ export default function Jobs() {
       const matchSearch = !search ||
         job['title']?.toLowerCase().includes(q) ||
         job['company']?.toLowerCase().includes(q) ||
-        job['location']?.toLowerCase().includes(q);
+        job['location']?.toLowerCase().includes(q) ||
+        (Array.isArray(job['skills']) && job['skills'].some((s: string) => s.toLowerCase().includes(q)));
       const matchSource = !sourceFilter || job['source'] === sourceFilter;
       const matchDecision = !decisionFilter || job['ai_status'] === decisionFilter;
       const matchWorkType = !workTypeFilter || job['work_type'] === workTypeFilter;
-      return matchSearch && matchSource && matchDecision && matchWorkType;
+      const matchCategory = !categoryFilter || job['category'] === categoryFilter;
+      return matchSearch && matchSource && matchDecision && matchWorkType && matchCategory;
     });
 
     if (sortKey && sortDir) {
@@ -92,7 +96,7 @@ export default function Jobs() {
     }
 
     return result;
-  }, [jobs, search, sourceFilter, decisionFilter, workTypeFilter, sortKey, sortDir]);
+  }, [jobs, search, sourceFilter, decisionFilter, workTypeFilter, categoryFilter, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageJobs = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -125,7 +129,7 @@ export default function Jobs() {
   };
 
   const visibleColumns = columns.filter(c => c.visible);
-  const activeFilters = [sourceFilter, decisionFilter, workTypeFilter].filter(Boolean);
+  const activeFilters = [sourceFilter, decisionFilter, workTypeFilter, categoryFilter].filter(Boolean);
 
   if (isLoading) {
     return (
@@ -184,9 +188,18 @@ export default function Jobs() {
             {workTypes.map(w => <option key={w as string} value={w as string}>{w as string}</option>)}
           </select>
 
+          <select
+            value={categoryFilter}
+            onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}
+            className="h-9 px-3 text-sm bg-[var(--c-card)] border border-[var(--c-border)] rounded-md text-[var(--c-text2)] outline-none focus:border-blue-500/50 cursor-pointer"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
+          </select>
+
           {activeFilters.length > 0 && (
             <button
-              onClick={() => { setSourceFilter(''); setDecisionFilter(''); setWorkTypeFilter(''); setPage(1); }}
+              onClick={() => { setSourceFilter(''); setDecisionFilter(''); setWorkTypeFilter(''); setCategoryFilter(''); setPage(1); }}
               className="h-9 px-3 text-sm text-[var(--c-text3)] hover:text-[var(--c-text)] border border-[var(--c-border)] rounded-md transition-colors flex items-center gap-1.5"
             >
               <X size={12} /> Reset
@@ -246,6 +259,12 @@ export default function Jobs() {
               <span className="flex items-center gap-1 text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
                 Type: {workTypeFilter}
                 <button onClick={() => setWorkTypeFilter('')}><X size={10} /></button>
+              </span>
+            )}
+            {categoryFilter && (
+              <span className="flex items-center gap-1 text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                Category: {categoryFilter}
+                <button onClick={() => setCategoryFilter('')}><X size={10} /></button>
               </span>
             )}
           </div>
