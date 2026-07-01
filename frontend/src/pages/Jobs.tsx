@@ -46,7 +46,11 @@ export default function Jobs() {
     queryKey: ['jobs'],
     queryFn: async () => {
       try {
-        const { data } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false }).limit(1000);
+        const { data } = await supabase
+          .from('jobs')
+          .select('id,title,company,location,source,work_type,ai_status,ai_score,ai_reason,scraped_at,job_url,keyword')
+          .order('scraped_at', { ascending: false })
+          .limit(500);
         return data ?? [];
       } catch {
         return [];
@@ -56,6 +60,15 @@ export default function Jobs() {
   });
 
   const jobs: any[] = Array.isArray(rawData) ? rawData : [];
+
+  const handleRowClick = async (job: any) => {
+    if (!job.description) {
+      const { data } = await supabase.from('jobs').select('description').eq('id', job.id).single();
+      setSelectedJob(data ? { ...job, description: data.description } : job);
+    } else {
+      setSelectedJob(job);
+    }
+  };
 
   const sources = useMemo(() => [...new Set(jobs.map((j: any) => j['source']).filter(Boolean))], [jobs]);
   const workTypes = useMemo(() => [...new Set(jobs.map((j: any) => j['work_type']).filter(Boolean))], [jobs]);
@@ -287,7 +300,7 @@ export default function Jobs() {
                 pageJobs.map((job: any, i: number) => (
                   <tr
                     key={i}
-                    onClick={() => setSelectedJob(job)}
+                    onClick={() => handleRowClick(job)}
                     className="border-b border-[#27272A] hover:bg-[#111113] cursor-pointer transition-colors last:border-0"
                   >
                     {visibleColumns.map(col => (

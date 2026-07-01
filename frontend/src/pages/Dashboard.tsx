@@ -41,6 +41,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
+  const openJob = async (job: any) => {
+    if (!job.description && job.id) {
+      const { data } = await supabase.from('jobs').select('description').eq('id', job.id).single();
+      setSelectedJob(data ? { ...job, description: data.description } : job);
+    } else {
+      setSelectedJob(job);
+    }
+  };
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['stats'],
     queryFn: async () => {
@@ -79,7 +88,7 @@ export default function Dashboard() {
     queryKey: ['jobs'],
     queryFn: async () => {
       try {
-        const { data } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false }).limit(100);
+        const { data } = await supabase.from('jobs').select('id,title,company,location,source,work_type,ai_status,ai_score,scraped_at,job_url').order('scraped_at', { ascending: false }).limit(100);
         return data ?? [];
       } catch { return []; }
     },
@@ -242,7 +251,7 @@ export default function Dashboard() {
                   {recentJobs.map((job: any, i: number) => (
                     <tr
                       key={i}
-                      onClick={() => setSelectedJob(job)}
+                      onClick={() => openJob(job)}
                       className="border-b border-[#27272A] hover:bg-[#111113] cursor-pointer transition-colors last:border-0"
                     >
                       <td className="px-4 py-3">

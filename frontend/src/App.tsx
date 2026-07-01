@@ -5,6 +5,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import Layout from '@/components/layout/Layout';
 
+function Loading() {
+  return <div className="flex items-center justify-center h-screen bg-background"><div className="animate-spin w-6 h-6 border-2 border-border border-t-blue-500 rounded-full" /></div>;
+}
+
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Jobs = lazy(() => import('./pages/Jobs'));
 const Keywords = lazy(() => import('./pages/Keywords'));
@@ -27,9 +31,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
-          <BrowserRouter>
-            <Layout>
-              <Routes>
+              <BrowserRouter>
+                <Layout>
+                  <Suspense fallback={<Loading />}>
+                    <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/jobs" element={<Jobs />} />
@@ -39,6 +44,7 @@ export default function App() {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
+              </Suspense>
             </Layout>
           </BrowserRouter>
         </ToastProvider>
