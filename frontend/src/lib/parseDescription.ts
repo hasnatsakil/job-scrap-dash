@@ -18,18 +18,17 @@ export type DescBlock = FieldBlock | HeadingBlock | BodyBlock;
 
 const FIELD_NAMES = ['department', 'location', 'compensation', 'salary', 'comp'];
 
-const HEADING_NAMES = [
-  'description', 'key responsibilities', 'responsibilities',
+const HEADING_RAW = [
+  'description', 'key responsibilities',
   'who we are', 'who you are', "what you'll do",
-  'what we\'re looking for', 'about us', 'about the role',
+  'what we\'re looking for', 'about the role',
   'skills, knowledge and expertise', 'skills & knowledge',
   'nice to have', 'benefits, culture and perks',
-  'benefits', 'perks', 'culture',
-  'qualifications', 'requirements', 'education',
-  'experience', 'summary', 'the role', 'about you',
-  'what you bring', 'key qualifications',
-  'preferred qualifications', 'minimum qualifications',
+  'the role', 'about you', 'what you bring',
+  'key qualifications', 'preferred qualifications', 'minimum qualifications',
 ];
+
+const HEADING_NAMES = HEADING_RAW.filter(n => n.split(/\s+/).length >= 2 || n === 'description');
 
 function esc(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -66,11 +65,14 @@ interface HeadingHit {
 
 function findHeadings(text: string): HeadingHit[] {
   const hits: HeadingHit[] = [];
+  const seen = new Set<string>();
   for (const name of HEADING_NAMES) {
-    const re = new RegExp('\\b' + esc(name) + '\\b', 'gi');
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      hits.push({ name, index: m.index, end: m.index + name.length });
+    if (seen.has(name)) continue;
+    const re = new RegExp('\\b' + esc(name) + '\\b', 'i');
+    const m = text.match(re);
+    if (m) {
+      hits.push({ name, index: m.index!, end: m.index! + name.length });
+      seen.add(name);
     }
   }
   hits.sort((a, b) => a.index - b.index || b.end - a.end);
