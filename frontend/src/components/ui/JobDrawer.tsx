@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Copy, Star, RefreshCw, Building2, MapPin, Clock, Tag, Brain } from 'lucide-react';
+import { X, ExternalLink, Copy, Star, RefreshCw, Building2, MapPin, Clock, Tag, Brain, DollarSign } from 'lucide-react';
+import { parseDescription, DescBlock } from '@/lib/parseDescription';
 
 interface Job {
   title?: string;
@@ -32,10 +33,23 @@ const DrawerRow: React.FC<{ icon: React.ReactNode; label: string; value?: string
   </div>
 );
 
+function fieldIcon(label: string): React.ReactNode {
+  const lower = label.toLowerCase();
+  if (/salary|comp|compensation/.test(lower)) return <DollarSign size={14} />;
+  if (/location/.test(lower)) return <MapPin size={14} />;
+  if (/department/.test(lower)) return <Building2 size={14} />;
+  return <Tag size={14} />;
+}
+
 const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
   const aiDecision = job?.['ai_status'];
   const aiScore = job?.['ai_score'];
   const aiReason = job?.['ai_reason'];
+
+  const descBlocks: DescBlock[] = useMemo(
+    () => job?.description ? parseDescription(job.description) : [],
+    [job?.description]
+  );
 
   const decisionBg =
     aiDecision === 'Keep' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
@@ -116,10 +130,34 @@ const JobDrawer: React.FC<JobDrawerProps> = ({ job, onClose }) => {
               </div>
 
               {/* Description */}
-              {job['description'] && (
+              {descBlocks.length > 0 && (
                 <div>
                   <h3 className="text-xs font-medium text-[var(--c-text3)] uppercase tracking-wide mb-3">Description</h3>
-                  <p className="text-sm text-[var(--c-text2)] leading-relaxed whitespace-pre-wrap">{job['description']}</p>
+                  <div className="space-y-3">
+                    {descBlocks.map((block, i) => {
+                      if (block.type === 'field') {
+                        const icon = fieldIcon(block.label);
+                        return (
+                          <div key={i} className="flex items-center gap-2.5 text-sm">
+                            <span className="text-[var(--c-text3)] shrink-0">{icon}</span>
+                            <span className="text-[var(--c-text2)]">{block.label}:</span>
+                            <span className="text-[var(--c-text)] font-medium">{block.value}</span>
+                          </div>
+                        );
+                      }
+                      if (block.type === 'heading') {
+                        return (
+                          <div key={i} className="pt-2">
+                            <h4 className="text-sm font-semibold text-[var(--c-text)]">{block.text}</h4>
+                            <div className="mt-1 h-px bg-[var(--c-pill)]" />
+                          </div>
+                        );
+                      }
+                      return (
+                        <p key={i} className="text-sm text-[var(--c-text2)] leading-relaxed whitespace-pre-wrap">{block.text}</p>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
