@@ -39,29 +39,32 @@ export default function Jobs() {
     { key: 'scraped_at', label: 'Posted', visible: true },
     { key: 'ai_score', label: 'AI Score', visible: true },
     { key: 'ai_status', label: 'Status', visible: true },
-    { key: 'has_description', label: 'Desc', visible: true },
   ]);
 
   const { data: rawData, isLoading } = useQuery({
     queryKey: ['jobs'],
     queryFn: async () => {
-      try {
-        const { data } = await supabase
-          .from('jobs')
-          .select('id,title,company,location,source,work_type,ai_status,ai_score,ai_reason,scraped_at,job_url,keyword,description')
-          .order('scraped_at', { ascending: false })
-          .limit(500);
-        return data ?? [];
-      } catch {
-        return [];
-      }
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('id,title,company,location,source,work_type,ai_status,ai_score,ai_reason,scraped_at,job_url,keyword')
+        .order('scraped_at', { ascending: false })
+        .limit(500);
+      if (error) console.error('Jobs fetch error:', error);
+      return data ?? [];
     },
     staleTime: 60000,
   });
 
   const jobs: any[] = Array.isArray(rawData) ? rawData : [];
 
-  const handleRowClick = (job: any) => setSelectedJob(job);
+  const handleRowClick = async (job: any) => {
+    if (!job.description) {
+      const { data } = await supabase.from('jobs').select('description').eq('id', job.id).single();
+      setSelectedJob(data ? { ...job, description: data.description } : job);
+    } else {
+      setSelectedJob(job);
+    }
+  };
 
   const sources = useMemo(() => [...new Set(jobs.map((j: any) => j['source']).filter(Boolean))], [jobs]);
   const workTypes = useMemo(() => [...new Set(jobs.map((j: any) => j['work_type']).filter(Boolean))], [jobs]);
@@ -308,10 +311,6 @@ export default function Jobs() {
                           <span className="tabular-nums font-medium text-[var(--c-text)]">{job[col.key] ?? '—'}</span>
                         ) : col.key === 'scraped_at' ? (
                           <span className="text-xs">{job[col.key]?.split('T')[0] || '—'}</span>
-                        ) : col.key === 'has_description' ? (
-                          <span className={`text-xs font-medium ${job['description'] ? 'text-green-400' : 'text-red-400'}`}>
-                            {job['description'] ? '✓' : '✗'}
-                          </span>
                         ) : col.key === 'source' ? (
                           <span className="text-xs bg-[var(--c-pill)] px-2 py-0.5 rounded-full">{job[col.key]}</span>
                         ) : (
