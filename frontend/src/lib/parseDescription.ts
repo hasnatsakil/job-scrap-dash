@@ -16,126 +16,61 @@ interface BodyBlock {
 
 export type DescBlock = FieldBlock | HeadingBlock | BodyBlock;
 
-const FIELD_NAMES = ['department', 'location', 'compensation', 'salary', 'comp'];
+const FIELD_NAMES = ['department', 'location', 'compensation', 'salary', 'comp', 'compensation range'];
 
-const HEADING_RAW = [
-  'description', 'key responsibilities',
-  'who we are', 'who you are', "what you'll do",
-  'what we\'re looking for', 'about the role',
-  'skills, knowledge and expertise', 'skills & knowledge',
-  'nice to have', 'benefits, culture and perks',
-  'the role', 'about you', 'what you bring',
-  'key qualifications', 'preferred qualifications', 'minimum qualifications',
-];
-
-const HEADING_NAMES = HEADING_RAW.filter(n => n.split(/\s+/).length >= 2 || n === 'description');
-
-function esc(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function findBoundary(text: string, start: number): number | null {
-  let earliest: number | null = null;
-  const slice = text.slice(start);
-
-  for (const name of FIELD_NAMES) {
-    const re = new RegExp('\\b' + esc(name) + '\\s*:', 'i');
-    const m = slice.match(re);
-    if (m && (earliest === null || start + m.index! < earliest)) {
-      earliest = start + m.index!;
-    }
-  }
-
-  for (const name of HEADING_NAMES) {
-    const re = new RegExp('\\b' + esc(name) + '\\b', 'i');
-    const m = slice.match(re);
-    if (m && (earliest === null || start + m.index! < earliest)) {
-      earliest = start + m.index!;
-    }
-  }
-
-  return earliest;
-}
-
-interface HeadingHit {
-  name: string;
-  index: number;
-  end: number;
-}
-
-function findHeadings(text: string): HeadingHit[] {
-  const hits: HeadingHit[] = [];
-  const seen = new Set<string>();
-  for (const name of HEADING_NAMES) {
-    if (seen.has(name)) continue;
-    const re = new RegExp('\\b' + esc(name) + '\\b', 'i');
-    const m = text.match(re);
-    if (m) {
-      hits.push({ name, index: m.index!, end: m.index! + name.length });
-      seen.add(name);
-    }
-  }
-  hits.sort((a, b) => a.index - b.index || b.end - a.end);
-
-  const unique: HeadingHit[] = [];
-  for (const h of hits) {
-    const prev = unique[unique.length - 1];
-    if (!prev || h.index >= prev.end) {
-      unique.push(h);
-    }
-  }
-  return unique;
-}
-
-function capitalizeTitle(s: string): string {
-  return s.replace(/\b\w/g, c => c.toUpperCase());
+function isHeadingLine(line: string): boolean {
+  if (!line || line.length > 60) return false;
+  if (/[.!?;]$/.test(line)) return false;
+  if (!/^[A-Z]/.test(line)) return false;
+  const words = line.split(/\s+/);
+  const alpha = words.filter(w => /^[a-zA-Z]+$/.test(w)).length;
+  if (alpha / words.length < 0.4) return false;
+  if (/^\w[\w\s]*:/i.test(line)) return false;
+  return true;
 }
 
 export function parseDescription(text: string): DescBlock[] {
   const blocks: DescBlock[] = [];
-  let pos = 0;
-  const len = text.length;
+  const lines = text.split('\n').map(l => l.trim());
 
-  while (pos < len) {
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
     const fieldRe = new RegExp(
-      '\\b(' + FIELD_NAMES.map(n => esc(n)).join('|') + ')\\s*:\\s*', 'i'
+      '^(' + FIELD_NAMES.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\s*:\\s*(.+)$', 'i'
     );
-    const fieldMatch = text.slice(pos).match(fieldRe);
-    if (fieldMatch && fieldMatch.index === 0) {
-      const label = fieldMatch[1];
-      const afterField = pos + fieldMatch[0].length;
-      const boundary = findBoundary(text, afterField);
-      const valueEnd = boundary !== null ? boundary : len;
-      const value = text.slice(afterField, valueEnd).trim();
-      blocks.push({ type: 'field', label, value });
-      pos = valueEnd;
-      continue;
+    const m = line.match(fieldRe);
+    if (m) {
+      blocks.push({ type: 'field', label: m[1], value: m[2].trim() });
+      i++;
+    } else {
+      break;
     }
-
-    break;
   }
 
-  const rest = text.slice(pos).trim();
-  if (!rest) return blocks;
-
-  const headings = findHeadings(rest);
-
-  if (headings.length === 0) {
-    blocks.push({ type: 'body', text: rest });
-    return blocks;
+  const classifications: { type: 'heading' | 'body'; text: string }[] = [];
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    classifications.push({
+      type: isHeadingLine(line) ? 'heading' : 'body',
+      text: line,
+    });
   }
 
-  if (headings[0].index > 0) {
-    const before = rest.slice(0, headings[0].index).trim();
-    if (before) blocks.push({ type: 'body', text: before });
-  }
-
-  for (let i = 0; i < headings.length; i++) {
-    const h = headings[i];
-    const nextStart = i + 1 < headings.length ? headings[i + 1].index : rest.length;
-    const content = rest.slice(h.end, nextStart).trim();
-    blocks.push({ type: 'heading', text: capitalizeTitle(h.name) });
-    if (content) blocks.push({ type: 'body', text: content });
+  for (let j = 0; j < classifications.length; j++) {
+    const c = classifications[j];
+    if (c.type === 'heading') {
+      blocks.push({ type: 'heading', text: c.text });
+    } else {
+      let merged = c.text;
+      while (j + 1 < classifications.length && classifications[j + 1].type === 'body') {
+        j++;
+        merged += '\n' + classifications[j].text;
+      }
+      blocks.push({ type: 'body', text: merged });
+    }
   }
 
   return blocks;
