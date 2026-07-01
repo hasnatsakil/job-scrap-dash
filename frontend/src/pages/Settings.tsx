@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 const DEFAULTS: SettingsData = {
   schedule_time: '08:00 AM',
   ai_model: 'openai/gpt-oss-20b:free',
-  ai_system_prompt: 'You are an expert technical recruiting assistant.\n\nYour task is to evaluate whether a job posting matches the user search keyword and should be kept.\n\nEvaluation rules:\n1. The job title should closely match the search keyword or be a reasonable variation.\n2. The required skills technologies or responsibilities should be relevant to the keyword.\n3. Ignore the location work arrangement (remote hybrid onsite) salary and years of experience unless they clearly make the job unrelated.\n4. Accept jobs even if they are not a perfect match. Favor keeping potentially relevant jobs rather than rejecting them.\n5. Reject only jobs that are clearly unrelated to the search keyword.\n6. If there is insufficient information prefer accepted rather than rejecting.',
+  ai_system_prompt: 'You are the AI processing engine for a job search platform.\n\nYour purpose is to analyze job postings, improve data quality, and generate structured metadata.\n\nResponsibilities:\n1. Job Relevance (decision: accepted/rejected, relevance_score: 0-100). Reject only for spam, unrelated, or unpaid. Prefer accepted if missing info.\n2. Job Summary: Generate a concise, user-friendly summary under 100 words. Max 5 bullet points starting with "- ". Do NOT repeat technical skills. Focus on role, responsibilities, team context, location, and non-technical requirements. Do not invent info or copy long sentences.\n3. Skills Extraction: JSON array of explicit skills only.\n4. Category: ONE primary category (e.g., Software Engineering, Data Science).\n5. Work Arrangement: Remote/Hybrid/Onsite/Unknown.\n6. Seniority: Internship/Entry/Junior/Mid/Senior/Lead/Manager/Unknown.\n7. Employment Type: Full Time/Contract/Freelance/Unknown.\n8. Salary: Only if explicit.\n9. Quality Rules: Never fabricate or guess missing info.\n\nOutput strictly valid JSON with exact fields: decision, relevance_score, category, summary, skills, work_arrangement, seniority, employment_type, salary, reason.',
   ai_request_budget_daily: 100,
   max_pages_per_source: 5,
   max_jobs_per_keyword: 50,
@@ -16,9 +16,15 @@ const DEFAULTS: SettingsData = {
   retry_count: 3,
   timeout: 30,
   concurrency: 2,
-  search_provider: 'duckduckgo',
-  enabled_sources: ['linkedin', 'greenhouse', 'lever', 'ashby'],
+  search_provider: 'google',
+  enabled_sources: ['linkedin', 'glassdoor'],
   search_keywords: ['Python Developer', 'Backend Engineer'],
+  search_locations: 'United States, United Kingdom, Singapore',
+};
+
+const REGIONS = {
+  'Americas & Europe': ['United States', 'United Kingdom', 'Canada', 'Germany', 'France'],
+  'Asia & Oceania': ['Australia', 'New Zealand', 'India', 'Singapore', 'Japan', 'South Korea', 'Philippines', 'Malaysia', 'United Arab Emirates']
 };
 
 interface SettingsData {
@@ -35,6 +41,7 @@ interface SettingsData {
   search_provider?: string;
   enabled_sources?: string[];
   search_keywords?: string[];
+  search_locations?: string;
   [key: string]: any;
 }
 
@@ -139,10 +146,14 @@ export default function Settings() {
   };
 
   const saveToBackend = async (data: SettingsData) => {
-    try {
-      const payload = { ...data, enabled_sources: JSON.stringify(data.enabled_sources) };
-      await supabase.from('settings').upsert({ id: 1, ...payload }).eq('id', 1);
-    } catch {}
+    const payload = { ...data, enabled_sources: JSON.stringify(data.enabled_sources) };
+    delete (payload as any).search_keywords;
+    delete (payload as any).disabled_keywords;
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+    if (error) {
+      console.error("Failed to save settings:", error);
+      throw error;
+    }
   };
 
   const mutation = useMutation({
@@ -210,13 +221,8 @@ export default function Settings() {
         <SettingField label="Enabled Sources" description="Select the job boards and platforms to scrape.">
           <div className="flex flex-col gap-2">
             {[
-              { id: 'linkedin', label: 'LinkedIn' },
-              { id: 'greenhouse', label: 'Greenhouse' },
-              { id: 'lever', label: 'Lever' },
-              { id: 'ashby', label: 'Ashby' },
-              { id: 'wellfound', label: 'Wellfound' },
-              { id: 'indeed', label: 'Indeed' },
-              { id: 'glassdoor', label: 'Glassdoor' },
+              { id: 'linkedin', label: 'LinkedIn (Scraper)' },
+              { id: 'glassdoor', label: 'Glassdoor (Scraper)' },
             ].map(src => {
               const enabled = form.enabled_sources?.includes(src.id) || false;
               return (
@@ -338,11 +344,47 @@ export default function Settings() {
 
       {/* Search */}
       <Section id="search" icon={<Search size={15} />} title="Search" description="Job search preferences and filters">
+        <div className="py-4 border-b border-[var(--c-border)]">
+          <div className="mb-4">
+            <label className="text-sm font-medium text-[var(--c-text)]">Search Locations</label>
+            <p className="text-xs text-[var(--c-text3)] mt-0.5 leading-relaxed">Select the countries you want to search in.</p>
+          </div>
+          <div className="space-y-4">
+            {Object.entries(REGIONS).map(([regionName, countries]) => (
+              <div key={regionName}>
+                <div className="text-xs font-semibold text-[var(--c-text3)] mb-2 uppercase tracking-wide">{regionName}</div>
+                <div className="flex flex-wrap gap-2">
+                  {countries.map(country => {
+                    const selectedList = (form.search_locations ?? '').split(',').map(s => s.trim()).filter(Boolean);
+                    const isSelected = selectedList.includes(country);
+                    return (
+                      <button
+                        key={country}
+                        onClick={() => {
+                          if (isSelected) {
+                            set('search_locations', selectedList.filter(c => c !== country).join(', '));
+                          } else {
+                            set('search_locations', [...selectedList, country].join(', '));
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-600/10 border-blue-500/30 text-blue-400' 
+                            : 'bg-[var(--c-bg)] border-[var(--c-border)] text-[var(--c-text2)] hover:border-[var(--c-hover)]'
+                        }`}
+                      >
+                        {country}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         <SettingField label="Search Provider" description="Default search provider used as fallback.">
           <select value={form.search_provider ?? ''} onChange={e => set('search_provider', e.target.value)} className={selectClass}>
-            <option value="duckduckgo">DuckDuckGo</option>
             <option value="google">Google</option>
-            <option value="bing">Bing</option>
           </select>
         </SettingField>
       </Section>

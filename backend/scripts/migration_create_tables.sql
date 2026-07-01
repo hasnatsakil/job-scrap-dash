@@ -34,6 +34,13 @@ CREATE TABLE IF NOT EXISTS public.scraper_runs (
   created_at timestamp with time zone DEFAULT now()
 );
 
+-- Create search_query_expansions table for caching AI expanded keywords
+CREATE TABLE IF NOT EXISTS public.search_query_expansions (
+  query text PRIMARY KEY,
+  expanded_keywords jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now()
+);
+
 -- Enable Row Level Security (optional but recommended)
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scraper_runs ENABLE ROW LEVEL SECURITY;
@@ -41,11 +48,14 @@ ALTER TABLE public.scraper_runs ENABLE ROW LEVEL SECURITY;
 -- Allow public read access (since the frontend uses anon key)
 CREATE POLICY "Allow public read" ON public.settings FOR SELECT USING (true);
 CREATE POLICY "Allow public read" ON public.scraper_runs FOR SELECT USING (true);
+CREATE POLICY "Allow public read" ON public.search_query_expansions FOR SELECT USING (true);
 CREATE POLICY "Allow public update" ON public.settings FOR UPDATE USING (true);
 CREATE POLICY "Allow public insert" ON public.scraper_runs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public insert" ON public.search_query_expansions FOR INSERT WITH CHECK (true);
 
 -- Allow the anon role to insert and update
 GRANT ALL ON public.settings TO anon, authenticated, service_role;
 GRANT ALL ON public.scraper_runs TO anon, authenticated, service_role;
+GRANT ALL ON public.search_query_expansions TO anon, authenticated, service_role;
 GRANT USAGE ON SEQUENCE public.settings_id_seq TO anon, authenticated, service_role;
 GRANT USAGE ON SEQUENCE public.scraper_runs_id_seq TO anon, authenticated, service_role;

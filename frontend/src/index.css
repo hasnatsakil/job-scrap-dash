@@ -138,3 +138,55 @@
     @apply w-2 h-2 rounded-full bg-zinc-500;
   }
 }
+
+/* ── Job Description HTML Renderer ── */
+.job-description {
+  white-space: normal;
+  line-height: 1.7;
+  color: var(--c-text2);
+}
+.job-description p {
+  margin-bottom: 0.85rem;
+}
+.job-description ul,
+.job-description ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+.job-description ul {
+  list-style-type: disc;
+}
+.job-description ol {
+  list-style-type: decimal;
+}
+.job-description li {
+  margin-bottom: 0.3rem;
+}
+.job-description h1,
+.job-description h2,
+.job-description h3,
+.job-description h4,
+.job-description h5,
+.job-description h6 {
+  font-weight: 600;
+  color: var(--c-text);
+  margin-top: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+.job-description strong,
+.job-description b {
+  color: var(--c-text);
+  font-weight: 600;
+}
+.job-description em,
+.job-description i {
+  font-style: italic;
+}
+.job-description a {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.job-description a:hover {
+  color: #93c5fd;
+}

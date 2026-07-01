@@ -177,4 +177,14 @@ class DatabaseService:
             logger.error(f"Error upserting sources: {e}")
             return False
 
+    def get_settings(self) -> Optional[Dict[str, Any]]:
+        if not self.client:
+            return None
+        try:
+            response = self.client.table("settings").select("*").limit(1).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            logger.error(f"Error fetching settings: {e}")
+            return None
+
 db_client = DatabaseService()

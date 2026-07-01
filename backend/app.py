@@ -19,8 +19,17 @@ async def lifespan(app: FastAPI):
     setup_scheduler()
     yield
 
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
 app = FastAPI(title="AI Job Scraper", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"error": "Internal Server Error", "detail": str(exc)})
+
 app.include_router(api_router, prefix="/api")
 
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
@@ -29,6 +38,11 @@ if os.path.exists(frontend_dist):
     @app.api_route("/{path_name:path}", methods=["GET"])
     async def catch_all(path_name: str):
         if path_name.startswith("api/"): return {"error": "Not found"}
+        
+        target_file = os.path.join(frontend_dist, path_name)
+        if os.path.exists(target_file) and os.path.isfile(target_file):
+            return FileResponse(target_file)
+            
         index_file = os.path.join(frontend_dist, "index.html")
         if os.path.exists(index_file): return FileResponse(index_file)
         return {"error": "Frontend build not found"}
@@ -37,5 +51,3 @@ else: logger.warning("Frontend dist not found. API only mode.")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.app:app", host="0.0.0.0", port=env_settings.port, reload=True)
-
-# Phase 1: Authentication logic removed
