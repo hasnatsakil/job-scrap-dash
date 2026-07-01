@@ -48,7 +48,7 @@ export default function Jobs() {
       try {
         const { data } = await supabase
           .from('jobs')
-          .select('id,title,company,location,source,work_type,ai_status,ai_score,ai_reason,scraped_at,job_url,keyword')
+          .select('id,title,company,location,source,work_type,ai_status,ai_score,ai_reason,scraped_at,job_url,keyword,description')
           .order('scraped_at', { ascending: false })
           .limit(500);
         return data ?? [];
@@ -61,14 +61,7 @@ export default function Jobs() {
 
   const jobs: any[] = Array.isArray(rawData) ? rawData : [];
 
-  const handleRowClick = async (job: any) => {
-    if (!job.description) {
-      const { data } = await supabase.from('jobs').select('description').eq('id', job.id).single();
-      setSelectedJob(data ? { ...job, description: data.description } : job);
-    } else {
-      setSelectedJob(job);
-    }
-  };
+  const handleRowClick = (job: any) => setSelectedJob(job);
 
   const sources = useMemo(() => [...new Set(jobs.map((j: any) => j['source']).filter(Boolean))], [jobs]);
   const workTypes = useMemo(() => [...new Set(jobs.map((j: any) => j['work_type']).filter(Boolean))], [jobs]);
