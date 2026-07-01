@@ -87,10 +87,25 @@ export default function Dashboard() {
 
   const jobs: any[] = Array.isArray(rawJobsData) ? rawJobsData : [];
 
-  const chartData = [
-    { name: 'Mon', jobs: 40 }, { name: 'Tue', jobs: 63 }, { name: 'Wed', jobs: 28 },
-    { name: 'Thu', jobs: 77 }, { name: 'Fri', jobs: 52 }, { name: 'Sat', jobs: 19 }, { name: 'Sun', jobs: 34 },
-  ];
+  // Compute daily job counts for the last 7 days from real data
+  const chartData = (() => {
+    const days: { name: string; jobs: number; date: string }[] = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const name = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const date = d.toISOString().slice(0, 10);
+      days.push({ name, jobs: 0, date });
+    }
+    for (const job of jobs) {
+      const scrapedAt = job['scraped_at'];
+      if (!scrapedAt) continue;
+      const match = days.find(d => d.date === scrapedAt.slice(0, 10));
+      if (match) match.jobs++;
+    }
+    return days;
+  })();
 
   // Derive source breakdown from real data
   const sourceCounts: Record<string, number> = {};
@@ -241,7 +256,7 @@ export default function Dashboard() {
                       <td className="px-4 py-3">
                         <span className={`text-xs border px-2 py-0.5 rounded-full font-medium ${getDecisionStyle(job['ai_status'] || '')}`}>
                           {job['ai_status'] || 'Pending'}
-                          {job['ai_score'] && ` · ${job['ai_score']}`}
+                          {typeof job['ai_score'] === 'number' && ` · ${job['ai_score']}`}
                         </span>
                       </td>
                     </tr>
