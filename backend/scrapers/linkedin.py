@@ -3,6 +3,7 @@ from playwright.async_api import BrowserContext, async_playwright
 from bs4 import BeautifulSoup
 import asyncio
 import logging
+from urllib.parse import quote_plus
 from backend.scrapers.base import BaseScraper, JobResult
 from backend.config import config_manager
 from backend.services.captcha_detector import captcha_detector, CaptchaDetectedException
@@ -11,6 +12,21 @@ logger = logging.getLogger(__name__)
 
 class LinkedInScraper(BaseScraper):
     source_name = "LinkedIn"
+
+    @staticmethod
+    def _is_ai_focused_keyword(keyword: str, trigger_terms: List[str]) -> bool:
+        kw = (keyword or "").lower()
+        return any(term in kw for term in trigger_terms)
+
+    def _build_keyword_query(self, keyword: str) -> str:
+        config = config_manager.get_config()
+        if not config.relevance_strict_mode or not self._is_ai_focused_keyword(keyword, config.relevance_ai_trigger_terms):
+            return keyword
+
+        return (
+            f'{keyword} "AI" "Machine Learning" "LLM" "Generative AI" '
+            f'-"Software Developer" -"Frontend Developer" -"Backend Developer"'
+        )
 
     async def scrape(self, context: BrowserContext, keyword: str) -> List[Dict[str, Any]]:
         self.diagnostics["start_time"] = asyncio.get_event_loop().time()
@@ -21,7 +37,8 @@ class LinkedInScraper(BaseScraper):
         try:
             logger.info("Using public unauthenticated LinkedIn scraping.")
             page = await context.new_page()
-            url = f"https://www.linkedin.com/jobs/search?keywords={keyword}"
+            query_keyword = self._build_keyword_query(keyword)
+            url = f"https://www.linkedin.com/jobs/search?keywords={quote_plus(query_keyword)}"
             await page.goto(url, wait_until="domcontentloaded")
             await asyncio.sleep(config.delay_between_requests)
 

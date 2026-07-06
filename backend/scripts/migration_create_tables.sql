@@ -4,6 +4,10 @@ CREATE TABLE IF NOT EXISTS public.settings (
   schedule_time text NOT NULL DEFAULT '08:00 AM',
   ai_model text NOT NULL DEFAULT 'openai/gpt-oss-20b:free',
   ai_system_prompt text NOT NULL DEFAULT '',
+  relevance_strict_mode boolean NOT NULL DEFAULT true,
+  relevance_required_terms jsonb NOT NULL DEFAULT '["ai","artificial intelligence","machine learning","ml","llm","generative ai","genai","applied ai","deep learning"]',
+  relevance_blocked_title_terms jsonb NOT NULL DEFAULT '["software engineer","software developer","full stack","frontend","backend","web developer","mobile developer"]',
+  relevance_ai_trigger_terms jsonb NOT NULL DEFAULT '["ai","artificial intelligence","machine learning","ml","llm","generative ai","genai","applied ai","deep learning"]',
   max_pages_per_source integer NOT NULL DEFAULT 5,
   max_jobs_per_keyword integer NOT NULL DEFAULT 50,
   delay_between_requests integer NOT NULL DEFAULT 2,
@@ -16,9 +20,14 @@ CREATE TABLE IF NOT EXISTS public.settings (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS relevance_strict_mode boolean NOT NULL DEFAULT true;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS relevance_required_terms jsonb NOT NULL DEFAULT '["ai","artificial intelligence","machine learning","ml","llm","generative ai","genai","applied ai","deep learning"]';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS relevance_blocked_title_terms jsonb NOT NULL DEFAULT '["software engineer","software developer","full stack","frontend","backend","web developer","mobile developer"]';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS relevance_ai_trigger_terms jsonb NOT NULL DEFAULT '["ai","artificial intelligence","machine learning","ml","llm","generative ai","genai","applied ai","deep learning"]';
+
 -- Insert default settings row if table was just created
 INSERT INTO public.settings (id, ai_system_prompt)
-VALUES (1, 'You are an expert technical recruiting assistant.\n\nYour task is to evaluate whether a job posting matches the user search keyword and should be kept.\n\nEvaluation rules:\n1. The job title should closely match the search keyword or be a reasonable variation.\n2. The required skills technologies or responsibilities should be relevant to the keyword.\n3. Ignore the location work arrangement (remote hybrid onsite) salary and years of experience unless they clearly make the job unrelated.\n4. Accept jobs even if they are not a perfect match. Favor keeping potentially relevant jobs rather than rejecting them.\n5. Reject only jobs that are clearly unrelated to the search keyword.\n6. If there is insufficient information prefer accepted rather than rejecting.')
+VALUES (1, 'You are an expert technical recruiting assistant.\n\nYour task is to evaluate whether a job posting matches the user search keyword and should be kept.\n\nEvaluation rules:\n1. The job title must align with the search keyword intent, not just general software engineering.\n2. For AI-focused searches (AI, ML, LLM, GenAI, Applied AI), reject generic titles like Software Engineer/Developer unless AI responsibility is clearly present in title or primary responsibilities.\n3. Required skills, technologies, and responsibilities must support the keyword intent.\n4. Ignore location, work arrangement (remote/hybrid/onsite), salary, and years of experience unless they make the role clearly unrelated.\n5. Reject when relevance is unclear or weak. Do not default to acceptance for uncertain matches.\n6. Keep only postings with strong evidence of relevance to the keyword.')
 ON CONFLICT (id) DO NOTHING;
 
 -- Create scraper_runs table for tracking health/status

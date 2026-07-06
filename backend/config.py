@@ -35,12 +35,44 @@ Your task is to evaluate whether a job posting matches the user's search keyword
 
 Evaluation rules:
 
-1. The job title should closely match the search keyword or be a reasonable variation.
-2. The required skills, technologies, or responsibilities should be relevant to the keyword.
-3. Ignore the location, work arrangement (remote, hybrid, onsite), salary, and years of experience unless they clearly make the job unrelated.
-4. Accept jobs even if they are not a perfect match. Favor keeping potentially relevant jobs rather than rejecting them.
-5. Reject only jobs that are clearly unrelated to the search keyword.
-6. If there is insufficient information, prefer "accepted" rather than rejecting."""
+1. The job title must align with the search keyword intent, not just general software engineering.
+2. For AI-focused searches (AI, ML, LLM, GenAI, Applied AI), reject generic titles like Software Engineer/Developer unless AI responsibility is clearly present in both title or primary responsibilities.
+3. Required skills, technologies, and responsibilities must support the keyword intent.
+4. Ignore location, work arrangement (remote/hybrid/onsite), salary, and years of experience unless they make the role clearly unrelated.
+5. Reject when relevance is unclear or weak. Do not default to acceptance for uncertain matches.
+6. Keep only postings with strong evidence of relevance to the keyword."""
+    relevance_strict_mode: bool = True
+    relevance_required_terms: List[str] = [
+        "ai",
+        "artificial intelligence",
+        "machine learning",
+        "ml",
+        "llm",
+        "generative ai",
+        "genai",
+        "applied ai",
+        "deep learning",
+    ]
+    relevance_blocked_title_terms: List[str] = [
+        "software engineer",
+        "software developer",
+        "full stack",
+        "frontend",
+        "backend",
+        "web developer",
+        "mobile developer",
+    ]
+    relevance_ai_trigger_terms: List[str] = [
+        "ai",
+        "artificial intelligence",
+        "machine learning",
+        "ml",
+        "llm",
+        "generative ai",
+        "genai",
+        "applied ai",
+        "deep learning",
+    ]
     max_pages_per_source: int = 5
     max_jobs_per_keyword: int = 50
     delay_between_requests: int = 2
@@ -57,11 +89,13 @@ class ConfigManager:
     _cache: Optional[AppConfigCache] = None
     _db_keywords_loaded: bool = False
     _db_sources_loaded: bool = False
+    _db_settings_loaded: bool = False
 
     @classmethod
     def get_config(cls) -> AppConfigCache:
         if cls._cache is None:
             cls._cache = AppConfigCache()
+            cls._load_settings_from_db()
             cls._load_keywords_from_db()
             cls._load_sources_from_db()
         return cls._cache
@@ -69,6 +103,64 @@ class ConfigManager:
     @classmethod
     def update_config(cls, new_config: AppConfigCache):
         cls._cache = new_config
+
+    @classmethod
+    def _load_settings_from_db(cls):
+        if cls._db_settings_loaded or not env_settings.supabase_url:
+            return
+        try:
+            from backend.services.database import db_client
+            rows = db_client.get_all("settings")
+            if rows:
+                settings_row = rows[0]
+                fields_to_load = [
+                    "schedule_time",
+                    "ai_model",
+                    "ai_system_prompt",
+                    "max_pages_per_source",
+                    "max_jobs_per_keyword",
+                    "delay_between_requests",
+                    "retry_count",
+                    "timeout",
+                    "concurrency",
+                    "ai_request_budget_daily",
+                    "search_provider",
+                    "relevance_strict_mode",
+                    "relevance_required_terms",
+                    "relevance_blocked_title_terms",
+                    "relevance_ai_trigger_terms",
+                ]
+                list_fields = {
+                    "relevance_required_terms",
+                    "relevance_blocked_title_terms",
+                    "relevance_ai_trigger_terms",
+                }
+
+                for key in fields_to_load:
+                    if key not in settings_row or settings_row.get(key) is None:
+                        continue
+
+                    value = settings_row.get(key)
+                    if key in list_fields and isinstance(value, str):
+                        try:
+                            parsed = json.loads(value)
+                            if isinstance(parsed, list):
+                                value = parsed
+                        except Exception:
+                            pass
+
+                    if key in list_fields and isinstance(value, list):
+                        value = [str(v).strip().lower() for v in value if str(v).strip()]
+
+                    setattr(cls._cache, key, value)
+            cls._db_settings_loaded = True
+        except Exception:
+            cls._db_settings_loaded = True
+
+    @classmethod
+    def reload_settings(cls):
+        cls._db_settings_loaded = False
+        cls._load_settings_from_db()
 
     @classmethod
     def _load_keywords_from_db(cls):

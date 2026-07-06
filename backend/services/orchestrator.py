@@ -45,6 +45,7 @@ class Orchestrator:
         logger.info("Starting orchestrated scraper run.")
 
         try:
+            config_manager.reload_settings()
             config_manager.reload_keywords()
             config_manager.reload_sources()
             config = config_manager.get_config()
@@ -96,7 +97,7 @@ class Orchestrator:
                                 extracted_jobs = [content_extractor.extract(job) for job in hydrated_jobs]
                                 normalized_jobs = [DataNormalizer.normalize_job(job) for job in extracted_jobs]
                                 cleaned_jobs = [content_cleaner.clean(job) for job in normalized_jobs]
-                                validated_jobs = content_validator.validate_batch(cleaned_jobs)
+                                validated_jobs = content_validator.validate_batch(cleaned_jobs, keyword=keyword)
                                 
                                 # Separate valid jobs for AI vs invalid jobs that skip AI
                                 ai_batch = [j for j in validated_jobs if j.get("AI Decision") != "Reject"]
