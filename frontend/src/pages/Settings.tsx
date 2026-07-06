@@ -8,8 +8,12 @@ import { supabase } from '@/lib/supabaseClient';
 const DEFAULTS: SettingsData = {
   schedule_time: '08:00 AM',
   ai_model: 'openai/gpt-oss-20b:free',
-  ai_system_prompt: 'You are an expert technical recruiting assistant.\n\nYour task is to evaluate whether a job posting matches the user search keyword and should be kept.\n\nEvaluation rules:\n1. The job title should closely match the search keyword or be a reasonable variation.\n2. The required skills technologies or responsibilities should be relevant to the keyword.\n3. Ignore the location work arrangement (remote hybrid onsite) salary and years of experience unless they clearly make the job unrelated.\n4. Accept jobs even if they are not a perfect match. Favor keeping potentially relevant jobs rather than rejecting them.\n5. Reject only jobs that are clearly unrelated to the search keyword.\n6. If there is insufficient information prefer accepted rather than rejecting.',
+  ai_system_prompt: 'You are an expert technical recruiting assistant.\n\nYour task is to evaluate whether a job posting matches the user search keyword and should be kept.\n\nEvaluation rules:\n1. The job title must align with the search keyword intent, not just general software engineering.\n2. For AI-focused searches (AI, ML, LLM, GenAI, Applied AI), reject generic titles like Software Engineer/Developer unless AI responsibility is clearly present in title or primary responsibilities.\n3. Required skills, technologies, and responsibilities must support the keyword intent.\n4. Ignore location, work arrangement (remote/hybrid/onsite), salary, and years of experience unless they make the role clearly unrelated.\n5. Reject when relevance is unclear or weak. Do not default to acceptance for uncertain matches.\n6. Keep only postings with strong evidence of relevance to the keyword.',
   ai_request_budget_daily: 100,
+  relevance_strict_mode: true,
+  relevance_required_terms: ['ai', 'artificial intelligence', 'machine learning', 'ml', 'llm', 'generative ai', 'genai', 'applied ai', 'deep learning'],
+  relevance_blocked_title_terms: ['software engineer', 'software developer', 'full stack', 'frontend', 'backend', 'web developer', 'mobile developer'],
+  relevance_ai_trigger_terms: ['ai', 'artificial intelligence', 'machine learning', 'ml', 'llm', 'generative ai', 'genai', 'applied ai', 'deep learning'],
   max_pages_per_source: 5,
   max_jobs_per_keyword: 50,
   delay_between_requests: 2,
@@ -26,6 +30,10 @@ interface SettingsData {
   ai_model?: string;
   ai_system_prompt?: string;
   ai_request_budget_daily?: number;
+  relevance_strict_mode?: boolean;
+  relevance_required_terms?: string[];
+  relevance_blocked_title_terms?: string[];
+  relevance_ai_trigger_terms?: string[];
   max_pages_per_source?: number;
   max_jobs_per_keyword?: number;
   delay_between_requests?: number;
@@ -39,6 +47,20 @@ interface SettingsData {
 }
 
 const SETTINGS_KEY = 'app_settings';
+
+const parseTermList = (value: unknown, fallback: string[]): string[] => {
+  if (Array.isArray(value)) return value.map(v => String(v).trim().toLowerCase()).filter(Boolean);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.map(v => String(v).trim().toLowerCase()).filter(Boolean);
+    } catch {}
+    return value.split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+  }
+  return fallback;
+};
+
+const formatTermList = (value?: string[]) => (value || []).join(', ');
 
 interface SettingFieldProps {
   label: string;
@@ -114,7 +136,14 @@ export default function Settings() {
       try {
         const { data } = await supabase.from('settings').select('*').limit(1).single();
         if (data) {
-          const s = { ...data, enabled_sources: typeof data.enabled_sources === 'string' ? JSON.parse(data.enabled_sources) : (data.enabled_sources || DEFAULTS.enabled_sources) };
+          const s = {
+            ...data,
+            enabled_sources: typeof data.enabled_sources === 'string' ? JSON.parse(data.enabled_sources) : (data.enabled_sources || DEFAULTS.enabled_sources),
+            relevance_required_terms: parseTermList(data.relevance_required_terms, DEFAULTS.relevance_required_terms || []),
+            relevance_blocked_title_terms: parseTermList(data.relevance_blocked_title_terms, DEFAULTS.relevance_blocked_title_terms || []),
+            relevance_ai_trigger_terms: parseTermList(data.relevance_ai_trigger_terms, DEFAULTS.relevance_ai_trigger_terms || []),
+            relevance_strict_mode: typeof data.relevance_strict_mode === 'boolean' ? data.relevance_strict_mode : DEFAULTS.relevance_strict_mode,
+          };
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
           return s;
         }
@@ -140,7 +169,13 @@ export default function Settings() {
 
   const saveToBackend = async (data: SettingsData) => {
     try {
-      const payload = { ...data, enabled_sources: JSON.stringify(data.enabled_sources) };
+      const payload = {
+        ...data,
+        enabled_sources: JSON.stringify(data.enabled_sources),
+        relevance_required_terms: JSON.stringify(data.relevance_required_terms || []),
+        relevance_blocked_title_terms: JSON.stringify(data.relevance_blocked_title_terms || []),
+        relevance_ai_trigger_terms: JSON.stringify(data.relevance_ai_trigger_terms || []),
+      };
       await supabase.from('settings').upsert({ id: 1, ...payload }).eq('id', 1);
     } catch {}
   };
@@ -332,6 +367,40 @@ export default function Settings() {
             placeholder="100"
             min={1}
             className={inputClass}
+          />
+        </SettingField>
+        <SettingField label="Strict Relevance Mode" description="When enabled, generic software titles are rejected for AI-focused keywords unless AI specialization is explicit.">
+          <label className="inline-flex items-center gap-2 text-sm text-[var(--c-text2)]">
+            <input
+              type="checkbox"
+              checked={Boolean(form.relevance_strict_mode)}
+              onChange={e => set('relevance_strict_mode', e.target.checked)}
+            />
+            Enable strict matching
+          </label>
+        </SettingField>
+        <SettingField label="Required AI Terms" description="Comma-separated AI signals required in title/description for AI-focused searches.">
+          <textarea
+            value={formatTermList(form.relevance_required_terms)}
+            onChange={e => set('relevance_required_terms', parseTermList(e.target.value, []))}
+            placeholder="ai, machine learning, llm, generative ai"
+            className={textareaClass}
+          />
+        </SettingField>
+        <SettingField label="Blocked Generic Title Terms" description="Comma-separated title terms considered too generic unless paired with explicit AI specialization.">
+          <textarea
+            value={formatTermList(form.relevance_blocked_title_terms)}
+            onChange={e => set('relevance_blocked_title_terms', parseTermList(e.target.value, []))}
+            placeholder="software engineer, software developer, full stack"
+            className={textareaClass}
+          />
+        </SettingField>
+        <SettingField label="AI Trigger Terms" description="Comma-separated keyword terms that activate strict AI-role relevance filtering.">
+          <textarea
+            value={formatTermList(form.relevance_ai_trigger_terms)}
+            onChange={e => set('relevance_ai_trigger_terms', parseTermList(e.target.value, []))}
+            placeholder="ai, ml, llm, genai"
+            className={textareaClass}
           />
         </SettingField>
       </Section>

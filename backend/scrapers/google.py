@@ -18,6 +18,22 @@ class GoogleScraper(BaseScraper):
     """
     site_filter: str = ""  # e.g. "site:jobs.lever.co"
 
+    @staticmethod
+    def _is_ai_focused_keyword(keyword: str, trigger_terms: List[str]) -> bool:
+        kw = (keyword or "").lower()
+        return any(term in kw for term in trigger_terms)
+
+    def _build_google_query(self, keyword: str) -> str:
+        config = config_manager.get_config()
+        base_query = f'{self.site_filter} "{keyword}"'
+        if not config.relevance_strict_mode or not self._is_ai_focused_keyword(keyword, config.relevance_ai_trigger_terms):
+            return base_query
+
+        return (
+            f'{base_query} ("AI Engineer" OR "Machine Learning Engineer" OR "LLM Engineer" OR "Generative AI") '
+            f'-"Software Developer" -"Frontend Developer" -"Backend Developer"'
+        )
+
     async def scrape(self, context: BrowserContext, keyword: str) -> List[Dict[str, Any]]:
         self.diagnostics["start_time"] = asyncio.get_event_loop().time()
         jobs: List[Dict[str, Any]] = []
@@ -34,7 +50,7 @@ class GoogleScraper(BaseScraper):
         })
 
         try:
-            query = quote_plus(f'{self.site_filter} "{keyword}"')
+            query = quote_plus(self._build_google_query(keyword))
             url = f"https://www.google.com/search?q={query}&num=30&hl=en"
 
             for page_num in range(config.max_pages_per_source):
